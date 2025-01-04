@@ -1,59 +1,27 @@
--- Tin nhắn muốn gửi (Chỉ cần chỉnh sửa dòng này)
-local messageToSend = "Please donate robux to me i am afk if you donate to me i would really thank you!"
+--[[ Anti-AFK and Auto-Chat Script (Highly Obfuscated) ]]--
 
--- Thời gian giữa mỗi tin nhắn (50 giây)
-local interval = 50
+local function A1B()local a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z="Please ","donate ","robux ","to me ","i am ","afk ","if you ","donate ","to me ","i would ","really ","thank ","you!","Interval ","set ","to ","30 ","seconds ","Service ","found.","Connected ","event ","function.","Service ","chat.","Send ","message.","",0 for i=1,28 do z=z..(({a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y})[i]or"")end return z end
+local mT,aT,Z,yT,qT,jT,sT,zT,lT,oT,bT,cT=0.1,30,nil,nil,nil,nil,nil,nil,nil,nil,nil,nil
+repeat
+    Z,jT=game:GetService("Players"),game:GetService("VirtualUser")
+    sT=zT or Z.LocalPlayer
+until Z and jT and sT
 
--- Cài đặt chống AFK
-local VirtualUser = game:GetService("VirtualUser")
-game:GetService("Players").LocalPlayer.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new(0, 0)) -- Mô phỏng nhấn chuột phải để ngăn bị kick vì không hoạt động
-end)
-
--- Hàm gửi tin nhắn
-local function autoChat()
-    while true do
-        -- Kiểm tra nếu `SayMessageRequest` tồn tại
-        local ChatService = game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents")
-        if ChatService then
-            local ChatFunction = ChatService:FindFirstChild("SayMessageRequest")
-            if ChatFunction and messageToSend and messageToSend ~= "" then
-                ChatFunction:FireServer(messageToSend, "All") -- Gửi tin nhắn vào kênh "All"
-            end
-        end
-        wait(interval)
-    end
+sT.Idled:Connect(function()jT:CaptureController()jT:ClickButton2(Vector2.new(mT,mT))end)
+local function wF(service)
+    local srv
+    repeat
+        srv=game:GetService(service)
+        wait(mT)
+    until srv
+    return srv
 end
+qT=wF("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents")
+lT=qT and qT:FindFirstChild("SayMessageRequest")
 
--- Chạy hàm auto chat
-autoChat()-- Tin nhắn muốn gửi (Chỉ cần chỉnh sửa dòng này)
-local messageToSend = "Please donate robux to me i am afk if you donate to me i would really thank you!"
-
--- Thời gian giữa mỗi tin nhắn (50 giây)
-local interval = 50
-
--- Cài đặt chống AFK
-local VirtualUser = game:GetService("VirtualUser")
-game:GetService("Players").LocalPlayer.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new(0, 0)) -- Mô phỏng nhấn chuột phải để ngăn bị kick vì không hoạt động
-end)
-
--- Hàm gửi tin nhắn
-local function autoChat()
-    while true do
-        -- Kiểm tra nếu `SayMessageRequest` tồn tại
-        local ChatService = game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents")
-        if ChatService then
-            local ChatFunction = ChatService:FindFirstChild("SayMessageRequest")
-            if ChatFunction and messageToSend and messageToSend ~= "" then
-                ChatFunction:FireServer(messageToSend, "All") -- Gửi tin nhắn vào kênh "All"
-            end
-        end
-        wait(interval)
+while true do
+    if lT then
+        lT:FireServer(A1B(),"All")
     end
+    wait(aT)
 end
-
--- Chạy hàm auto chat
-autoChat()
