@@ -2,8 +2,10 @@
 --khoitongdz on top !
 -- Script by khoitongdz
 -- Create UI Elements
+-- Create UI Elements
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
+local LogoButton = Instance.new("ImageButton")
 local TabBar = Instance.new("Frame")
 local StatusTab = Instance.new("TextButton")
 local ErrorTab = Instance.new("TextButton")
@@ -14,9 +16,10 @@ local ErrorContainer = Instance.new("Frame")
 local MainContainer = Instance.new("Frame")
 
 -- Variables
+local isUIVisible = true
 local isChatEnabled = false
-local chatMessage = "1 robux equals 1 jump"
-local chatInterval = 50
+local chatMessage = "1 robux equals 1 jump!"
+local chatInterval = 10
 local startTime = os.time()
 local errorLog = {}
 
@@ -32,6 +35,14 @@ MainFrame.Position = UDim2.new(0.4, 0, 0.3, 0)
 MainFrame.Size = UDim2.new(0, 400, 0, 300)
 MainFrame.Active = true
 MainFrame.Draggable = true
+
+-- Logo Button (Anime Image)
+LogoButton.Name = "LogoButton"
+LogoButton.Parent = ScreenGui
+LogoButton.BackgroundTransparency = 1
+LogoButton.Image = "http://www.roblox.com/asset/?id=12345678" -- Replace with your anime image ID
+LogoButton.Position = UDim2.new(0.05, 0, 0.05, 0)
+LogoButton.Size = UDim2.new(0, 100, 0, 100)
 
 -- Tab Bar
 TabBar.Name = "TabBar"
@@ -132,44 +143,37 @@ ChatBox.Text = chatMessage
 ChatBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 ChatBox.TextSize = 18
 
--- Interval Slider
-local SliderLabel = Instance.new("TextLabel")
-SliderLabel.Parent = MainContainer
-SliderLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-SliderLabel.Position = UDim2.new(0.1, 0, 0.35, 0)
-SliderLabel.Size = UDim2.new(0.8, 0, 0, 30)
-SliderLabel.Font = Enum.Font.SourceSans
-SliderLabel.Text = "Thời gian chat: " .. chatInterval .. " giây"
-SliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-SliderLabel.TextSize = 18
+-- Tab Functionality
+local function switchTab(tabName)
+    StatusContainer.Visible = tabName == "Status"
+    ErrorContainer.Visible = tabName == "Error"
+    MainContainer.Visible = tabName == "Main"
+end
 
--- Chat Toggle Button
-local ChatToggleButton = Instance.new("TextButton")
-ChatToggleButton.Parent = MainContainer
-ChatToggleButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-ChatToggleButton.Position = UDim2.new(0.1, 0, 0.5, 0)
-ChatToggleButton.Size = UDim2.new(0.8, 0, 0, 30)
-ChatToggleButton.Font = Enum.Font.SourceSansBold
-ChatToggleButton.Text = "Bật Chat"
-ChatToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ChatToggleButton.TextSize = 18
-
--- Functionality
-ChatToggleButton.MouseButton1Click:Connect(function()
-    isChatEnabled = not isChatEnabled
-    ChatToggleButton.Text = isChatEnabled and "Tắt Chat" or "Bật Chat"
+StatusTab.MouseButton1Click:Connect(function()
+    switchTab("Status")
 end)
 
-ChatBox:GetPropertyChangedSignal("Text"):Connect(function()
-    chatMessage = ChatBox.Text
+ErrorTab.MouseButton1Click:Connect(function()
+    switchTab("Error")
 end)
 
--- Update Status
+MainTab.MouseButton1Click:Connect(function()
+    switchTab("Main")
+end)
+
+-- Logo Button Functionality
+LogoButton.MouseButton1Click:Connect(function()
+    isUIVisible = not isUIVisible
+    MainFrame.Visible = isUIVisible
+end)
+
+-- Status Timer
 spawn(function()
     while wait(1) do
         local elapsedTime = os.time() - startTime
-        StatusText.Text = "Thời gian sử dụng: " .. elapsedTime .. " giây"
+        StatusText.Text = "Thời gian sử dụng Script by:khoitongdz: " .. elapsedTime .. " giây"
     end
 end)
 
-print("Script đã được tải thành công!")
+print("Script với các tab hoạt động hoàn chỉnh đã được tải thành công!")
