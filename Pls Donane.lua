@@ -3,6 +3,7 @@
 -- Script by khoitongdz
 -- Create UI Elements
 -- Create UI Elements
+-- Create UI Elements
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local LogoButton = Instance.new("ImageButton")
@@ -18,7 +19,7 @@ local MainContainer = Instance.new("Frame")
 -- Variables
 local isUIVisible = true
 local isChatEnabled = false
-local chatMessage = "1 robux equals 1 jump!"
+local chatMessage = "Hello, I'm here!"
 local chatInterval = 10
 local startTime = os.time()
 local errorLog = {}
@@ -36,11 +37,11 @@ MainFrame.Size = UDim2.new(0, 400, 0, 300)
 MainFrame.Active = true
 MainFrame.Draggable = true
 
--- Logo Button (Anime Image)
+-- Logo Button
 LogoButton.Name = "LogoButton"
 LogoButton.Parent = ScreenGui
 LogoButton.BackgroundTransparency = 1
-LogoButton.Image = "http://www.roblox.com/asset/?id=12345678" -- Replace with your anime image ID
+LogoButton.Image = "http://www.roblox.com/asset/?id=6537589785" -- Replace with your anime image ID
 LogoButton.Position = UDim2.new(0.05, 0, 0.05, 0)
 LogoButton.Size = UDim2.new(0, 100, 0, 100)
 
@@ -50,38 +51,24 @@ TabBar.Parent = MainFrame
 TabBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 TabBar.Size = UDim2.new(1, 0, 0, 40)
 
--- Status Tab
-StatusTab.Name = "StatusTab"
-StatusTab.Parent = TabBar
-StatusTab.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-StatusTab.Position = UDim2.new(0, 10, 0, 5)
-StatusTab.Size = UDim2.new(0, 120, 0, 30)
-StatusTab.Font = Enum.Font.SourceSansBold
-StatusTab.Text = "Trạng Thái"
-StatusTab.TextColor3 = Color3.fromRGB(255, 255, 255)
-StatusTab.TextSize = 16
+-- Tabs
+local function createTab(name, text, posX)
+    local tab = Instance.new("TextButton")
+    tab.Name = name
+    tab.Parent = TabBar
+    tab.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+    tab.Position = UDim2.new(0, posX, 0, 5)
+    tab.Size = UDim2.new(0, 120, 0, 30)
+    tab.Font = Enum.Font.SourceSansBold
+    tab.Text = text
+    tab.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tab.TextSize = 16
+    return tab
+end
 
--- Error Tab
-ErrorTab.Name = "ErrorTab"
-ErrorTab.Parent = TabBar
-ErrorTab.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-ErrorTab.Position = UDim2.new(0, 140, 0, 5)
-ErrorTab.Size = UDim2.new(0, 120, 0, 30)
-ErrorTab.Font = Enum.Font.SourceSansBold
-ErrorTab.Text = "Lỗi Script"
-ErrorTab.TextColor3 = Color3.fromRGB(255, 255, 255)
-ErrorTab.TextSize = 16
-
--- Main Tab
-MainTab.Name = "MainTab"
-MainTab.Parent = TabBar
-MainTab.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-MainTab.Position = UDim2.new(0, 270, 0, 5)
-MainTab.Size = UDim2.new(0, 120, 0, 30)
-MainTab.Font = Enum.Font.SourceSansBold
-MainTab.Text = "Chính"
-MainTab.TextColor3 = Color3.fromRGB(255, 255, 255)
-MainTab.TextSize = 16
+local StatusTab = createTab("StatusTab", "Trạng Thái", 10)
+local ErrorTab = createTab("ErrorTab", "Lỗi Script", 140)
+local MainTab = createTab("MainTab", "Chính", 270)
 
 -- Tab Container
 TabContainer.Name = "TabContainer"
@@ -90,10 +77,21 @@ TabContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 TabContainer.Position = UDim2.new(0, 0, 0, 40)
 TabContainer.Size = UDim2.new(1, 0, 1, -40)
 
--- Status Container
-StatusContainer.Name = "StatusContainer"
-StatusContainer.Parent = TabContainer
-StatusContainer.Size = UDim2.new(1, 0, 1, 0)
+-- Containers for Tabs
+local function createContainer(name)
+    local container = Instance.new("Frame")
+    container.Name = name
+    container.Parent = TabContainer
+    container.Size = UDim2.new(1, 0, 1, 0)
+    container.Visible = false
+    return container
+end
+
+local StatusContainer = createContainer("StatusContainer")
+local ErrorContainer = createContainer("ErrorContainer")
+local MainContainer = createContainer("MainContainer")
+
+-- Show Status Container by default
 StatusContainer.Visible = true
 
 -- Status Text
@@ -107,13 +105,7 @@ StatusText.Text = "Thời gian sử dụng: 0 giây"
 StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
 StatusText.TextSize = 18
 
--- Error Container
-ErrorContainer.Name = "ErrorContainer"
-ErrorContainer.Parent = TabContainer
-ErrorContainer.Size = UDim2.new(1, 0, 1, 0)
-ErrorContainer.Visible = false
-
--- Error Log
+-- Error Text
 local ErrorText = Instance.new("TextLabel")
 ErrorText.Parent = ErrorContainer
 ErrorText.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -125,13 +117,7 @@ ErrorText.TextColor3 = Color3.fromRGB(255, 255, 255)
 ErrorText.TextSize = 18
 ErrorText.TextWrapped = true
 
--- Main Container
-MainContainer.Name = "MainContainer"
-MainContainer.Parent = TabContainer
-MainContainer.Size = UDim2.new(1, 0, 1, 0)
-MainContainer.Visible = false
-
--- Chat Message Box
+-- Main Tab - Chat Configuration
 local ChatBox = Instance.new("TextBox")
 ChatBox.Parent = MainContainer
 ChatBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
@@ -143,7 +129,44 @@ ChatBox.Text = chatMessage
 ChatBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 ChatBox.TextSize = 18
 
--- Tab Functionality
+local SliderLabel = Instance.new("TextLabel")
+SliderLabel.Parent = MainContainer
+SliderLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SliderLabel.Position = UDim2.new(0.1, 0, 0.4, 0)
+SliderLabel.Size = UDim2.new(0.8, 0, 0, 30)
+SliderLabel.Font = Enum.Font.SourceSans
+SliderLabel.Text = "Thời gian chat: " .. chatInterval .. " giây"
+SliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SliderLabel.TextSize = 18
+
+local StartButton = Instance.new("TextButton")
+StartButton.Parent = MainContainer
+StartButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+StartButton.Position = UDim2.new(0.35, 0, 0.6, 0)
+StartButton.Size = UDim2.new(0.3, 0, 0.1, 0)
+StartButton.Font = Enum.Font.SourceSansBold
+StartButton.Text = "Bắt Đầu"
+StartButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+StartButton.TextSize = 18
+
+-- Start Chat Functionality
+StartButton.MouseButton1Click:Connect(function()
+    chatMessage = ChatBox.Text
+    if chatMessage ~= "" then
+        isChatEnabled = true
+        print("Tự động chat đã bật với tin nhắn: " .. chatMessage)
+        spawn(function()
+            while isChatEnabled do
+                wait(chatInterval)
+                game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(chatMessage, "All")
+            end
+        end)
+    else
+        print("Vui lòng nhập tin nhắn để bắt đầu!")
+    end
+end)
+
+-- Tabs Functionality
 local function switchTab(tabName)
     StatusContainer.Visible = tabName == "Status"
     ErrorContainer.Visible = tabName == "Error"
@@ -172,8 +195,9 @@ end)
 spawn(function()
     while wait(1) do
         local elapsedTime = os.time() - startTime
-        StatusText.Text = "Thời gian sử dụng Script by:khoitongdz: " .. elapsedTime .. " giây"
+        StatusText.Text = "Thời gian: " .. elapsedTime .. " giây"
     end
 end)
 
-print("Script với các tab hoạt động hoàn chỉnh đã được tải thành công!")
+print("Script hoàn chỉnh đã được tải!")
+
