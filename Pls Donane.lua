@@ -1,10 +1,7 @@
 --[[https://discord.gg/w26VGWmMPb]]--
 --khoitongdz on top !
 -- Script by khoitongdz
--- Create UI Elements
--- Create UI Elements
--- Create UI Elements
--- Create UI Elements
+-- Create UI khoitongdz
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local LogoButton = Instance.new("ImageButton")
