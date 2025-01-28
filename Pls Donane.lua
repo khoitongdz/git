@@ -4,6 +4,7 @@
 -- Create UI Elements
 -- Create UI Elements
 -- Create UI Elements
+-- Create UI Elements
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local LogoButton = Instance.new("ImageButton")
@@ -11,10 +12,12 @@ local TabBar = Instance.new("Frame")
 local StatusTab = Instance.new("TextButton")
 local ErrorTab = Instance.new("TextButton")
 local MainTab = Instance.new("TextButton")
+local AutoFarmTab = Instance.new("TextButton") -- Tab Auto Farm
 local TabContainer = Instance.new("Frame")
 local StatusContainer = Instance.new("Frame")
 local ErrorContainer = Instance.new("Frame")
 local MainContainer = Instance.new("Frame")
+local AutoFarmContainer = Instance.new("Frame") -- Container for Auto Farm
 
 -- Variables
 local isUIVisible = true
@@ -41,7 +44,7 @@ MainFrame.Draggable = true
 LogoButton.Name = "LogoButton"
 LogoButton.Parent = ScreenGui
 LogoButton.BackgroundTransparency = 1
-LogoButton.Image = "http://www.roblox.com/asset/?id=6537589785" -- Replace with your anime image ID
+LogoButton.Image = "http://www.roblox.com/asset/?id=6537589785" -- Kirito image ID
 LogoButton.Position = UDim2.new(0.05, 0, 0.05, 0)
 LogoButton.Size = UDim2.new(0, 100, 0, 100)
 
@@ -69,6 +72,7 @@ end
 local StatusTab = createTab("StatusTab", "Trạng Thái", 10)
 local ErrorTab = createTab("ErrorTab", "Lỗi Script", 140)
 local MainTab = createTab("MainTab", "Chính", 270)
+local AutoFarmTab = createTab("AutoFarmTab", "Auto Farm", 400) -- New Auto Farm Tab
 
 -- Tab Container
 TabContainer.Name = "TabContainer"
@@ -90,6 +94,7 @@ end
 local StatusContainer = createContainer("StatusContainer")
 local ErrorContainer = createContainer("ErrorContainer")
 local MainContainer = createContainer("MainContainer")
+local AutoFarmContainer = createContainer("AutoFarmContainer") -- Auto Farm Container
 
 -- Show Status Container by default
 StatusContainer.Visible = true
@@ -117,53 +122,65 @@ ErrorText.TextColor3 = Color3.fromRGB(255, 255, 255)
 ErrorText.TextSize = 18
 ErrorText.TextWrapped = true
 
--- Main Tab - Chat Configuration
-local ChatBox = Instance.new("TextBox")
-ChatBox.Parent = MainContainer
-ChatBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-ChatBox.Position = UDim2.new(0.1, 0, 0.2, 0)
-ChatBox.Size = UDim2.new(0.8, 0, 0, 30)
-ChatBox.Font = Enum.Font.SourceSans
-ChatBox.PlaceholderText = "Nhập tin nhắn..."
-ChatBox.Text = chatMessage
-ChatBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-ChatBox.TextSize = 18
+-- Auto Farm Tab - Farming Setup
+local AutoFarmToggle = Instance.new("TextButton")
+AutoFarmToggle.Parent = AutoFarmContainer
+AutoFarmToggle.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+AutoFarmToggle.Position = UDim2.new(0.1, 0, 0.2, 0)
+AutoFarmToggle.Size = UDim2.new(0.8, 0, 0.1, 0)
+AutoFarmToggle.Font = Enum.Font.SourceSansBold
+AutoFarmToggle.Text = "Bắt Đầu Auto Farm"
+AutoFarmToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoFarmToggle.TextSize = 18
 
-local SliderLabel = Instance.new("TextLabel")
-SliderLabel.Parent = MainContainer
-SliderLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-SliderLabel.Position = UDim2.new(0.1, 0, 0.4, 0)
-SliderLabel.Size = UDim2.new(0.8, 0, 0, 30)
-SliderLabel.Font = Enum.Font.SourceSans
-SliderLabel.Text = "Thời gian chat: " .. chatInterval .. " giây"
-SliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-SliderLabel.TextSize = 18
-
-local StartButton = Instance.new("TextButton")
-StartButton.Parent = MainContainer
-StartButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-StartButton.Position = UDim2.new(0.35, 0, 0.6, 0)
-StartButton.Size = UDim2.new(0.3, 0, 0.1, 0)
-StartButton.Font = Enum.Font.SourceSansBold
-StartButton.Text = "Bắt Đầu"
-StartButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-StartButton.TextSize = 18
-
--- Start Chat Functionality
-StartButton.MouseButton1Click:Connect(function()
-    chatMessage = ChatBox.Text
-    if chatMessage ~= "" then
-        isChatEnabled = true
-        print("Tự động chat đã bật với tin nhắn: " .. chatMessage)
-        spawn(function()
-            while isChatEnabled do
-                wait(chatInterval)
-                game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(chatMessage, "All")
+-- Auto Farm Logic
+local function startAutoFarm()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    
+    -- Tìm quái gần nhất
+    local closestEnemy
+    local shortestDistance = math.huge
+    for _, enemy in pairs(workspace:GetChildren()) do
+        if enemy:FindFirstChild("Humanoid") and enemy:FindFirstChild("HumanoidRootPart") then
+            local distance = (humanoidRootPart.Position - enemy.HumanoidRootPart.Position).Magnitude
+            if distance < shortestDistance then
+                closestEnemy = enemy
+                shortestDistance = distance
             end
-        end)
-    else
-        print("Vui lòng nhập tin nhắn để bắt đầu!")
+        end
     end
+    
+    -- Bay đến quái
+    if closestEnemy then
+        -- Tạo hàm bay đến quái
+        while humanoidRootPart.Position ~= closestEnemy.HumanoidRootPart.Position do
+            humanoidRootPart.CFrame = CFrame.new(closestEnemy.HumanoidRootPart.Position)
+            wait(1)
+        end
+        
+        -- Tự động đánh quái bằng Melee
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid and closestEnemy:FindFirstChild("Humanoid") then
+            -- Kiểm tra vũ khí melee và kích hoạt đánh nhanh
+            local meleeWeapon = character:FindFirstChild("MeleeWeapon") -- Thay đổi tên nếu cần
+            if meleeWeapon then
+                -- Sử dụng melee đánh nhanh
+                humanoid:MoveTo(closestEnemy.HumanoidRootPart.Position)
+                -- Giả lập đánh nhanh
+                while closestEnemy:FindFirstChild("Humanoid") do
+                    -- Thực hiện đánh vào quái
+                    closestEnemy.Humanoid:TakeDamage(10) -- Chỉnh sửa damage nếu cần
+                    wait(0.1) -- Giảm thời gian giữa các đòn đánh
+                end
+            end
+        end
+    end
+end
+
+AutoFarmToggle.MouseButton1Click:Connect(function()
+    startAutoFarm()
 end)
 
 -- Tabs Functionality
@@ -171,6 +188,7 @@ local function switchTab(tabName)
     StatusContainer.Visible = tabName == "Status"
     ErrorContainer.Visible = tabName == "Error"
     MainContainer.Visible = tabName == "Main"
+    AutoFarmContainer.Visible = tabName == "AutoFarm"
 end
 
 StatusTab.MouseButton1Click:Connect(function()
@@ -183,6 +201,10 @@ end)
 
 MainTab.MouseButton1Click:Connect(function()
     switchTab("Main")
+end)
+
+AutoFarmTab.MouseButton1Click:Connect(function()
+    switchTab("AutoFarm")
 end)
 
 -- Logo Button Functionality
@@ -200,4 +222,5 @@ spawn(function()
 end)
 
 print("Script hoàn chỉnh đã được tải!")
+
 
