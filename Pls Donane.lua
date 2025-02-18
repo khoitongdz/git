@@ -3,7 +3,7 @@ local messages = {" please donate me some robux :( "}
 local delay = 35 -- Thời gian giữa các tin nhắn (mặc định 35 giây)
 local running = false
 local speed = 16 -- Mặc định tốc độ nhân vật
-local webhookURL = "" -- Link webhook Discord
+local webhookURL = "https://discord.com/api/webhooks/1337667957655994450/SjYmmvhkszUlpmSNZel7pwYnnKHhiV4QvQuvA3Iut-Hj0vfC3VeB6xqoipFVLRLqyZUy" -- Link webhook Discord
 
 -- Kiểm tra executor
 local isSupported = (syn and syn.request) or (secure_request) or (http and http.request) or (fluxus and fluxus.request) or request
