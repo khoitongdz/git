@@ -1,223 +1,160 @@
---[[https://discord.gg/w26VGWmMPb]]--
---khoitongdz on top !
--- Script by khoitongdz
--- Create UI khoitongdz
+-- Kenon Hub - Auto Chat Full Executor
+local messages = {" please donate me some robux :( "}
+local delay = 35 -- Thời gian giữa các tin nhắn (mặc định 35 giây)
+local running = false
+
+-- Kiểm tra executor
+local isSupported = (syn and syn.request) or (secure_request) or (http and http.request) or (fluxus and fluxus.request) or request
+if not isSupported then
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Kenon Hub",
+        Text = "Executor không hỗ trợ!",
+        Duration = 5
+    })
+    return
+end
+
+-- Tạo UI
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
-local LogoButton = Instance.new("ImageButton")
-local TabBar = Instance.new("Frame")
-local StatusTab = Instance.new("TextButton")
-local ErrorTab = Instance.new("TextButton")
-local MainTab = Instance.new("TextButton")
-local AutoFarmTab = Instance.new("TextButton") -- Tab Auto Farm
-local TabContainer = Instance.new("Frame")
-local StatusContainer = Instance.new("Frame")
-local ErrorContainer = Instance.new("Frame")
-local MainContainer = Instance.new("Frame")
-local AutoFarmContainer = Instance.new("Frame") -- Container for Auto Farm
+local ToggleButton = Instance.new("ImageButton")
+local StatusLabel = Instance.new("TextButton")
+local TimeLabel = Instance.new("TextLabel")
+local OverlayText = Instance.new("TextLabel")
+local MessageBox = Instance.new("TextBox")
+local DelayBox = Instance.new("TextBox")
 
--- Variables
-local isUIVisible = true
-local isChatEnabled = false
-local chatMessage = "Hello, I'm here!"
-local chatInterval = 10
-local startTime = os.time()
-local errorLog = {}
-
--- UI Parent
 ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.Name = "KenonHubUI"
 
--- Main Frame
-MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0.4, 0, 0.3, 0)
-MainFrame.Size = UDim2.new(0, 400, 0, 300)
-MainFrame.Active = true
-MainFrame.Draggable = true
+MainFrame.Size = UDim2.new(0, 250, 0, 150)
+MainFrame.Position = UDim2.new(0.5, -125, 0.4, -75) -- Canh giữa màn hình
+MainFrame.Visible = false
 
--- Logo Button
-LogoButton.Name = "LogoButton"
-LogoButton.Parent = ScreenGui
-LogoButton.BackgroundTransparency = 1
-LogoButton.Image = "http://www.roblox.com/asset/?id=6537589785" -- Kirito image ID
-LogoButton.Position = UDim2.new(0.05, 0, 0.05, 0)
-LogoButton.Size = UDim2.new(0, 100, 0, 100)
+ToggleButton.Parent = ScreenGui
+ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+ToggleButton.Position = UDim2.new(0.9, 0, 0.1, 0)
+ToggleButton.BackgroundTransparency = 1
+ToggleButton.Image = "rbxassetid://15377289473" -- Thay ID bằng logo của bạn
 
--- Tab Bar
-TabBar.Name = "TabBar"
-TabBar.Parent = MainFrame
-TabBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-TabBar.Size = UDim2.new(1, 0, 0, 40)
+-- Cho phép kéo thả logo
+local dragging, offset
+ToggleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        offset = input.Position - ToggleButton.AbsolutePosition
+    end
+end)
 
--- Tabs
-local function createTab(name, text, posX)
-    local tab = Instance.new("TextButton")
-    tab.Name = name
-    tab.Parent = TabBar
-    tab.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-    tab.Position = UDim2.new(0, posX, 0, 5)
-    tab.Size = UDim2.new(0, 120, 0, 30)
-    tab.Font = Enum.Font.SourceSansBold
-    tab.Text = text
-    tab.TextColor3 = Color3.fromRGB(255, 255, 255)
-    tab.TextSize = 16
-    return tab
-end
+ToggleButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
 
-local StatusTab = createTab("StatusTab", "Trạng Thái", 10)
-local ErrorTab = createTab("ErrorTab", "Lỗi Script", 140)
-local MainTab = createTab("MainTab", "Chính", 270)
-local AutoFarmTab = createTab("AutoFarmTab", "Auto Farm", 400) -- New Auto Farm Tab
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        ToggleButton.Position = UDim2.new(0, input.Position.X - offset.X, 0, input.Position.Y - offset.Y)
+    end
+end)
 
--- Tab Container
-TabContainer.Name = "TabContainer"
-TabContainer.Parent = MainFrame
-TabContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-TabContainer.Position = UDim2.new(0, 0, 0, 40)
-TabContainer.Size = UDim2.new(1, 0, 1, -40)
+StatusLabel.Parent = MainFrame
+StatusLabel.Text = "Auto Chat: OFF"
+StatusLabel.Size = UDim2.new(1, 0, 0.2, 0)
+StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+StatusLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+StatusLabel.BorderSizePixel = 0
 
--- Containers for Tabs
-local function createContainer(name)
-    local container = Instance.new("Frame")
-    container.Name = name
-    container.Parent = TabContainer
-    container.Size = UDim2.new(1, 0, 1, 0)
-    container.Visible = false
-    return container
-end
+TimeLabel.Parent = MainFrame
+TimeLabel.Text = "Server Time: 00:00"
+TimeLabel.Size = UDim2.new(1, 0, 0.2, 0)
+TimeLabel.Position = UDim2.new(0, 0, 0.2, 0)
+TimeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TimeLabel.BackgroundTransparency = 1
 
-local StatusContainer = createContainer("StatusContainer")
-local ErrorContainer = createContainer("ErrorContainer")
-local MainContainer = createContainer("MainContainer")
-local AutoFarmContainer = createContainer("AutoFarmContainer") -- Auto Farm Container
+MessageBox.Parent = MainFrame
+MessageBox.PlaceholderText = "Nhập tin nhắn..."
+MessageBox.Text = table.concat(messages, " | ")
+MessageBox.Size = UDim2.new(1, -10, 0.2, 0)
+MessageBox.Position = UDim2.new(0, 5, 0.4, 0)
+MessageBox.TextColor3 = Color3.fromRGB(0, 255, 0)
+MessageBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 
--- Show Status Container by default
-StatusContainer.Visible = true
+DelayBox.Parent = MainFrame
+DelayBox.PlaceholderText = "Nhập delay (giây)..."
+DelayBox.Text = tostring(delay)
+DelayBox.Size = UDim2.new(1, -10, 0.2, 0)
+DelayBox.Position = UDim2.new(0, 5, 0.6, 0)
+DelayBox.TextColor3 = Color3.fromRGB(0, 255, 255)
+DelayBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 
--- Status Text
-local StatusText = Instance.new("TextLabel")
-StatusText.Parent = StatusContainer
-StatusText.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-StatusText.BorderSizePixel = 0
-StatusText.Size = UDim2.new(1, 0, 1, 0)
-StatusText.Font = Enum.Font.SourceSansBold
-StatusText.Text = "Thời gian sử dụng: 0 giây"
-StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
-StatusText.TextSize = 18
+-- Dòng chữ lớn giữa màn hình khi Auto Chat bật
+OverlayText.Parent = ScreenGui
+OverlayText.Text = "Kenon Hub|by:khoitongdz Sever Discord:https://discord.gg/w26VGWmMPbm Join My Sever Dicord! "
+OverlayText.Size = UDim2.new(1, 0, 0.1, 0)
+OverlayText.Position = UDim2.new(0, 0, 0.45, 0)
+OverlayText.TextColor3 = Color3.fromRGB(255, 0, 0)
+OverlayText.TextScaled = true
+OverlayText.BackgroundTransparency = 1
+OverlayText.Visible = false
 
--- Error Text
-local ErrorText = Instance.new("TextLabel")
-ErrorText.Parent = ErrorContainer
-ErrorText.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ErrorText.BorderSizePixel = 0
-ErrorText.Size = UDim2.new(1, 0, 1, 0)
-ErrorText.Font = Enum.Font.SourceSansBold
-ErrorText.Text = "Không có lỗi nào được ghi nhận."
-ErrorText.TextColor3 = Color3.fromRGB(255, 255, 255)
-ErrorText.TextSize = 18
-ErrorText.TextWrapped = true
+-- Cập nhật thời gian trong server
+task.spawn(function()
+    while true do
+        local timeInMinutes = math.floor(workspace.DistributedGameTime / 60)
+        local hours = math.floor(timeInMinutes / 60)
+        local minutes = timeInMinutes % 60
+        TimeLabel.Text = string.format("Server Time: %02d:%02d", hours, minutes)
+        wait(1)
+    end
+end)
 
--- Auto Farm Tab - Farming Setup
-local AutoFarmToggle = Instance.new("TextButton")
-AutoFarmToggle.Parent = AutoFarmContainer
-AutoFarmToggle.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-AutoFarmToggle.Position = UDim2.new(0.1, 0, 0.2, 0)
-AutoFarmToggle.Size = UDim2.new(0.8, 0, 0.1, 0)
-AutoFarmToggle.Font = Enum.Font.SourceSansBold
-AutoFarmToggle.Text = "Bắt Đầu Auto Farm"
-AutoFarmToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-AutoFarmToggle.TextSize = 18
+-- Auto Chat function
+local function startAutoChat()
+    running = true
+    StatusLabel.Text = "Auto Chat: ON"
+    OverlayText.Visible = true
 
--- Auto Farm Logic
-local function startAutoFarm()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    
-    -- Tìm quái gần nhất
-    local closestEnemy
-    local shortestDistance = math.huge
-    for _, enemy in pairs(workspace:GetChildren()) do
-        if enemy:FindFirstChild("Humanoid") and enemy:FindFirstChild("HumanoidRootPart") then
-            local distance = (humanoidRootPart.Position - enemy.HumanoidRootPart.Position).Magnitude
-            if distance < shortestDistance then
-                closestEnemy = enemy
-                shortestDistance = distance
-            end
+    -- Cập nhật nội dung tin nhắn và delay từ UI
+    local inputMessages = MessageBox.Text
+    if inputMessages ~= "" then
+        messages = {}
+        for msg in string.gmatch(inputMessages, "[^|]+") do
+            table.insert(messages, msg:match("^%s*(.-)%s*$")) -- Loại bỏ khoảng trắng thừa
         end
     end
-    
-    -- Bay đến quái
-    if closestEnemy then
-        -- Tạo hàm bay đến quái
-        while humanoidRootPart.Position ~= closestEnemy.HumanoidRootPart.Position do
-            humanoidRootPart.CFrame = CFrame.new(closestEnemy.HumanoidRootPart.Position)
-            wait(1)
-        end
-        
-        -- Tự động đánh quái bằng Melee
-        local humanoid = character:FindFirstChild("Humanoid")
-        if humanoid and closestEnemy:FindFirstChild("Humanoid") then
-            -- Kiểm tra vũ khí melee và kích hoạt đánh nhanh
-            local meleeWeapon = character:FindFirstChild("MeleeWeapon") -- Thay đổi tên nếu cần
-            if meleeWeapon then
-                -- Sử dụng melee đánh nhanh
-                humanoid:MoveTo(closestEnemy.HumanoidRootPart.Position)
-                -- Giả lập đánh nhanh
-                while closestEnemy:FindFirstChild("Humanoid") do
-                    -- Thực hiện đánh vào quái
-                    closestEnemy.Humanoid:TakeDamage(10) -- Chỉnh sửa damage nếu cần
-                    wait(0.1) -- Giảm thời gian giữa các đòn đánh
-                end
-            end
+
+    local inputDelay = tonumber(DelayBox.Text)
+    if inputDelay and inputDelay > 0 then
+        delay = inputDelay
+    end
+
+    while running do
+        for _, msg in ipairs(messages) do
+            game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(msg, "All")
+            wait(delay)
         end
     end
 end
 
-AutoFarmToggle.MouseButton1Click:Connect(function()
-    startAutoFarm()
-end)
-
--- Tabs Functionality
-local function switchTab(tabName)
-    StatusContainer.Visible = tabName == "Status"
-    ErrorContainer.Visible = tabName == "Error"
-    MainContainer.Visible = tabName == "Main"
-    AutoFarmContainer.Visible = tabName == "AutoFarm"
+local function stopAutoChat()
+    running = false
+    StatusLabel.Text = "Auto Chat: OFF"
+    OverlayText.Visible = false
 end
 
-StatusTab.MouseButton1Click:Connect(function()
-    switchTab("Status")
+-- Nút bật/tắt UI
+ToggleButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
 end)
 
-ErrorTab.MouseButton1Click:Connect(function()
-    switchTab("Error")
-end)
-
-MainTab.MouseButton1Click:Connect(function()
-    switchTab("Main")
-end)
-
-AutoFarmTab.MouseButton1Click:Connect(function()
-    switchTab("AutoFarm")
-end)
-
--- Logo Button Functionality
-LogoButton.MouseButton1Click:Connect(function()
-    isUIVisible = not isUIVisible
-    MainFrame.Visible = isUIVisible
-end)
-
--- Status Timer
-spawn(function()
-    while wait(1) do
-        local elapsedTime = os.time() - startTime
-        StatusText.Text = "Thời gian: " .. elapsedTime .. " giây"
+-- Nhấn vào StatusLabel để bật/tắt auto chat
+StatusLabel.MouseButton1Click:Connect(function()
+    if running then
+        stopAutoChat()
+    else
+        startAutoChat()
     end
 end)
-
-print("Script hoàn chỉnh đã được tải!")
-
-
