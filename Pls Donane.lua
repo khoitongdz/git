@@ -2,6 +2,8 @@
 local messages = {" please donate me some robux :( "}
 local delay = 35 -- Thời gian giữa các tin nhắn (mặc định 35 giây)
 local running = false
+local speed = 16 -- Mặc định tốc độ nhân vật
+local webhookURL = "" -- Link webhook Discord
 
 -- Kiểm tra executor
 local isSupported = (syn and syn.request) or (secure_request) or (http and http.request) or (fluxus and fluxus.request) or request
@@ -13,7 +15,19 @@ if not isSupported then
     })
     return
 end
-
+-- Gửi thông báo webhook khi script bắt đầu
+local function sendWebhook(message)
+    if webhookURL ~= "https://discord.com/api/webhooks/1337667957655994450/SjYmmvhkszUlpmSNZel7pwYnnKHhiV4QvQuvA3Iut-Hj0vfC3VeB6xqoipFVLRLqyZUy" then
+        local requestData = {
+            url = webhookURL,
+            method = "POST",
+            headers = { ["Content-Type"] = "application/json" },
+            body = game:GetService("HttpService"):JSONEncode({ content = message })
+        }
+        request(requestData)
+    end
+end
+sendWebhook("Kenon Hub đã được kích hoạt! Người chơi: " .. game.Players.LocalPlayer.Name)
 -- Tạo UI
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
@@ -92,7 +106,7 @@ DelayBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 
 -- Dòng chữ lớn giữa màn hình khi Auto Chat bật
 OverlayText.Parent = ScreenGui
-OverlayText.Text = "Kenon Hub|by:khoitongdz Sever Discord:https://discord.gg/w26VGWmMPbm Join My Sever Dicord! "
+OverlayText.Text = "Kenon Hub|by:khoitongdz"
 OverlayText.Size = UDim2.new(1, 0, 0.1, 0)
 OverlayText.Position = UDim2.new(0, 0, 0.45, 0)
 OverlayText.TextColor3 = Color3.fromRGB(255, 0, 0)
@@ -156,5 +170,20 @@ StatusLabel.MouseButton1Click:Connect(function()
         stopAutoChat()
     else
         startAutoChat()
+    end
+end)
+-- Điều chỉnh tốc độ nhân vật
+SpeedBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local newSpeed = tonumber(SpeedBox.Text)
+        if newSpeed and newSpeed >= 1 and newSpeed <= 100 then
+            speed = newSpeed
+            local humanoid = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = speed
+            end
+        else
+            SpeedBox.Text = tostring(speed) -- Trả về giá trị hợp lệ
+        end
     end
 end)
