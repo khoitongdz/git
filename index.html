@@ -1,132 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📕Excutor & Script</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background-image: url('https://media.discordapp.net/attachments/1251112235972034560/1353720067891793950/DALLE_2025-03-24_20.20.03_-_Create_a_glitch_text_design_with_the_word_executor._The_text_should_have_a_digital_distortion_effect_with_RGB_color_separation_pixelated_noise_and.webp?ex=67e2ad8f&is=67e15c0f&hm=ddce0871542523470dc1546b225da56cf7f1e72e1dfb78c5570e09a33913ff78&=&format=webp&width=583&height=583'); 
-            background-size: cover;
-            background-position: center;
-            overflow: hidden;
-        }
-        .container {
-            display: flex;
-            gap: 20px;
-            padding: 20px;
-            overflow-x: auto;
-            white-space: nowrap; 
-            scroll-behavior: smooth;
-            max-width: 90vw;
-        }
-        .container::-webkit-scrollbar {
-            height: 8px;
-        }
-        .container::-webkit-scrollbar-track {
-            background: #222;
-            border-radius: 10px;
-        }
-        .container::-webkit-scrollbar-thumb {
-            background: #444;
-            border-radius: 10px;
-        }
-        .container::-webkit-scrollbar-thumb:hover {
-            background: #666;
-        }
-        .game-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            min-width: 150px;
-            transition: transform 0.3s ease-in-out, background 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.1);
-        }
-        .game-box:hover {
-            transform: scale(1.05) rotate(1deg);
-            background: rgba(255, 255, 255, 0.1);
-            box-shadow: 0px 0px 20px rgba(255, 255, 255, 0.3);
-        }
-        .game-image {
-            width: 80px;
-            height: 80px;
-            border-radius: 10px;
-        }
-        .play-button {
-            background: linear-gradient(45deg, blue, cyan);
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.3s ease-in-out, transform 0.1s;
-        }
-        .play-button:hover {
-            background: linear-gradient(45deg, darkblue, lightblue);
-        }
-        .play-button:active {
-            transform: scale(0.95);
-        }
-        .game-title {
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        .fade-in {
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeIn 0.5s forwards ease-out;
-        }
-        @keyframes fadeIn {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
+    <title>Trang APK</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body> 
-    <div class="web-credit"> khoitongdz | Server Discord: <a href="https://discord.gg/w26VGWmMPb" target="_blank" style="color: cyan; text-decoration: none;">Tham gia</a></div>
-   
-    <div class="container fade-in">
-        <!-- Thiết bịy-->
-        <div class="game-box">
-            <div class="game-title">KRNL VNG Và Quốc Tế</div>
-            <img src="https://media.discordapp.net/attachments/1251112235972034560/1353720067891793950/DALLE_2025-03-24_20.20.03_-_Create_a_glitch_text_design_with_the_word_executor._The_text_should_have_a_digital_distortion_effect_with_RGB_color_separation_pixelated_noise_and.webp?ex=67e2ad8f&is=67e15c0f&hm=ddce0871542523470dc1546b225da56cf7f1e72e1dfb78c5570e09a33913ff78&=&format=webp&width=583&height=583" alt="KRNL VNG Và Quốc Tế" class="game-image">
-            <button class="play-button" onclick="window.location.href='https://wearedevs.net/d/Krnl'">Tải</button>
-        </div>
-
-        <!-- Thiết bị 2 -->
-        <div class="game-box">
-            <div class="game-title">Ronix Quốc Tế(NoKey)</div>
-            <img src="https://media.discordapp.net/attachments/1251112235972034560/1353720067891793950/DALLE_2025-03-24_20.20.03_-_Create_a_glitch_text_design_with_the_word_executor._The_text_should_have_a_digital_distortion_effect_with_RGB_color_separation_pixelated_noise_and.webp?ex=67e2ad8f&is=67e15c0f&hm=ddce0871542523470dc1546b225da56cf7f1e72e1dfb78c5570e09a33913ff78&=&format=webp&width=583&height=583" alt="Ronix Quốc Tế(NoKey)" class="game-image">
-            <button class="play-button" onclick="window.open('https://www.mediafire.com/file/63fpqdcntw0giyx/Ronix.apk/file', '_blank')">Tải</button>
-        </div>
-        <!-- Link Script -->
-        <div class="game-box">
-            <div class="game-title">Script Blox Fruit</div>
-            <img src="https://media.discordapp.net/attachments/1321869620881129566/1353724110345080883/54b0322f-e04f-43de-83f8-0c6e61b70561.webp?ex=67e2b152&is=67e15fd2&hm=464fdfc6475f94499ac99629d5f970753dc310f46af424b49fcee16b375b48a5&=&format=webp&width=500&height=500" alt="Script" class="game-image">
-            <button class="play-button" onclick="window.location.href='https://pastefy.app/SmMJ7Xik/raw'">Xem</button>
-        </div>
-    </div>
+<body>
+    <header>
+        <h1>Vô đây lấy Tệp APK nhé</h1>
+    </header>
+    
+    <main>
+        <a href="https://ducknovis.github.io/creturbolite/" class="button">Fix không tải được app</a>
+        <a href="https://www.mediafire.com/folder/ohh8017o5ao8d/Roblox_Client" class="button">all client quốc tế & vng fix by IamHa</a>
+        <a href="https://sites.google.com/view/khoitongdz/home" class="button">Script</a>
+        <a href="https://www.mediafire.com/file/l7ka8rqjpogf6p3/taskbarkhoitongdzmod.apk/file" class="button">TaskBar</a>
+        <a href="https://www.google.com/url?q=https%3A%2F%2Ffile.gamedva.com%2FApp%2FO%2FOctopus-v6.8.2-mod-GameDVA.com.apk&sa=D&sntz=1&usg=AOvVaw0xT_9Gmum_x033pyFCVFTF" class="button">Key Mapper</a>
+        <a href="https://www.mediafire.com/file/xkra82bc8xxa16z/ZArchiver_1.0.10_apkcombo.app.apk/file" class="button">ZArchiver</a>
+        <a href="https://www.google.com/url?q=https%3A%2F%2Fdl.gamedva.top%2FApp%2FNavigation-Bar-v3.2.3-mod-GameDVA.com.apk&sa=D&sntz=1&usg=AOvVaw1ldsx8TLBw-5tK1HVXO8cP" class="button">Navigation Bar</a>
+    </main>
 </body>
 </html>
-
-
