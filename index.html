@@ -3,28 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dead Rails</title>
+  <title>đua tàu=))</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="icon" href="https://images-ext-1.discordapp.net/external/oY3IzCcrSLI8TfqjZf_TDPN5whbviE_PGqQqzJd2GYE/%3Fsize%3D4096/https/cdn.discordapp.com/avatars/1253726505402499203/6602147533b258ea90daf9b2c4a45176.png?format=webp&quality=lossless&width=476&height=476" type="image/png">                         
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
   <style>
-    body { margin: 0; overflow: hidden; background: #222; }
+    body { margin: 0; overflow: hidden; background: #111; }
     canvas { display: block; }
     #pause-button {
       position: absolute;
-      top: 10px;
+      top: 15px;
       left: 50%;
       transform: translateX(-50%);
       padding: 12px 24px;
-      background: #0a0;
+      background: linear-gradient(#0a0, #080);
       color: white;
       border: none;
-      border-radius: 5px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 18px;
+      font-family: Arial, sans-serif;
       z-index: 1000;
       display: none;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+      transition: background 0.2s;
     }
     #pause-button:hover {
-      background: #0c0;
+      background: linear-gradient(#0c0, #0a0);
     }
   </style>
 </head>
@@ -37,6 +42,7 @@ let powerUps = [];
 let particles = [];
 let clouds = [];
 let trees = [];
+let stars = [];
 let score = 0;
 let highScore = localStorage.getItem('highScore') ? parseInt(localStorage.getItem('highScore')) : 0;
 let gameState = 'menu';
@@ -44,11 +50,16 @@ let lanes;
 let speed = 5;
 let bgY = 0;
 let shieldActive = false;
+let speedBoostActive = false;
+let scoreBoostActive = false;
 let shieldTimer = 0;
+let speedBoostTimer = 0;
+let scoreBoostTimer = 0;
 let shakeTimer = 0;
 let shakeOffsetX = 0;
 let shakeOffsetY = 0;
 let targetLane;
+let fadeAlpha = 255;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -56,17 +67,27 @@ function setup() {
   playerX = lanes[1];
   playerY = height - height * 0.2;
   targetLane = lanes[1];
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 7; i++) {
     clouds.push({
       x: random(width),
       y: random(height * 0.1, height * 0.3),
-      size: random(50, 100)
+      size: random(60, 140),
+      speed: random(0.4, 1.0)
     });
   }
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 15; i++) {
     trees.push({
       x: random(width),
-      y: random(height * 0.4, height * 0.8)
+      y: random(height * 0.4, height * 0.8),
+      size: random(0.8, 1.2)
+    });
+  }
+  for (let i = 0; i < 50; i++) {
+    stars.push({
+      x: random(width),
+      y: random(height * 0.5),
+      size: random(1, 3),
+      alpha: random(100, 255)
     });
   }
 }
@@ -89,26 +110,31 @@ function draw() {
 
   if (gameState === 'menu') {
     drawBackground();
-    fill(255);
+    fadeAlpha = lerp(fadeAlpha, 0, 0.05);
+    fill(0, 0, 0, fadeAlpha);
+    rect(0, 0, width, height);
+    fill(255, 255, 255, 255 - fadeAlpha);
     textSize(width * 0.08);
     textAlign(CENTER);
+    textStyle(BOLD);
+    textFont('Arial');
     text("Dead Rails", width / 2, height / 2 - height * 0.1);
-    fill(0, 200, 0);
+    fill(0, 200, 0, 230 - fadeAlpha);
     rect(width / 2 - width * 0.12, height / 2, width * 0.24, height * 0.08, 10);
-    fill(255);
+    fill(255, 255 - fadeAlpha);
     textSize(width * 0.04);
+    textStyle(NORMAL);
     text("Start Game", width / 2, height / 2 + height * 0.05);
     document.getElementById('pause-button').style.display = 'none';
   } else if (gameState === 'playing') {
     document.getElementById('pause-button').style.display = 'block';
     document.getElementById('pause-button').textContent = 'Pause';
-    
+
     drawBackground();
     drawRails();
 
-    // Di chuyển nhân vật
     updatePlayerMovement();
-    playerX = lerp(playerX, targetLane, 0.2); // Tăng tốc độ lerp cho mượt hơn
+    playerX = lerp(playerX, targetLane, 0.3);
 
     drawPlayer();
 
@@ -118,32 +144,45 @@ function draw() {
       } else {
         noFill();
         stroke(255, 215, 0, 200);
-        strokeWeight(3);
+        strokeWeight(4);
         ellipse(playerX, playerY, width * 0.12, width * 0.12);
         noStroke();
+        drawPowerUpBar(shieldTimer, 300, color(255, 215, 0), height * 0.08);
+      }
+    }
+    if (speedBoostActive) {
+      if (frameCount > speedBoostTimer) {
+        speedBoostActive = false;
+        speed = min(5 + score / 1000, 10);
+      } else {
+        drawPowerUpBar(speedBoostTimer, 200, color(0, 255, 0), height * 0.12);
+      }
+    }
+    if (scoreBoostActive) {
+      if (frameCount > scoreBoostTimer) {
+        scoreBoostActive = false;
+      } else {
+        drawPowerUpBar(scoreBoostTimer, 400, color(255, 0, 255), height * 0.16);
       }
     }
 
-    let obstacleFrequency = 60 - floor(score / 200);
-    obstacleFrequency = max(obstacleFrequency, 30);
+    let obstacleFrequency = 60 - floor(score / 300);
+    obstacleFrequency = max(obstacleFrequency, 25);
     if (frameCount % obstacleFrequency === 0) {
       let lane = lanes[floor(random(3))];
-      obstacles.push({ x: lane, y: -height * 0.06 });
+      let type = random() < 0.3 ? 'large' : 'small';
+      obstacles.push({ x: lane, y: -height * 0.06, type });
     }
 
     for (let i = obstacles.length - 1; i >= 0; i--) {
       obstacles[i].y += speed;
-      fill(0, 0, 0);
-      rect(obstacles[i].x - width * 0.05, obstacles[i].y - width * 0.05, width * 0.1, width * 0.1, 5);
-      fill(169, 169, 169);
-      ellipse(obstacles[i].x - width * 0.03, obstacles[i].y - width * 0.03, width * 0.02, width * 0.02);
-      ellipse(obstacles[i].x + width * 0.03, obstacles[i].y - width * 0.03, width * 0.02, width * 0.02);
-      ellipse(obstacles[i].x - width * 0.03, obstacles[i].y + width * 0.03, width * 0.02, width * 0.02);
-      ellipse(obstacles[i].x + width * 0.03, obstacles[i].y + width * 0.03, width * 0.02, width * 0.02);
+      let size = obstacles[i].type === 'large' ? width * 0.12 : width * 0.1;
+      drawObstacle(obstacles[i].x, obstacles[i].y, size);
 
-      if (!shieldActive && dist(playerX, playerY, obstacles[i].x, obstacles[i].y) < width * 0.08) {
+      if (!shieldActive && dist(playerX, playerY, obstacles[i].x, obstacles[i].y) < size * 0.6) {
         gameState = 'gameOver';
-        shakeTimer = 10;
+        shakeTimer = 15;
+        if ('vibrate' in navigator) navigator.vibrate(200);
         break;
       }
 
@@ -152,26 +191,53 @@ function draw() {
       }
     }
 
-    if (frameCount % 180 === 0) {
+    if (frameCount % 150 === 0) {
       let lane = lanes[floor(random(3))];
-      powerUps.push({ x: lane, y: -height * 0.06, type: 'shield' });
+      let type = random(['shield', 'speed', 'score']);
+      powerUps.push({ x: lane, y: -height * 0.06, type, angle: 0 });
     }
 
     for (let i = powerUps.length - 1; i >= 0; i--) {
       powerUps[i].y += speed;
-      fill(255, 215, 0, 200);
-      ellipse(powerUps[i].x, powerUps[i].y, width * 0.06, width * 0.06);
-      fill(0, 0, 255);
+      powerUps[i].angle += 0.05;
+      let col;
+      let label;
+      if (powerUps[i].type === 'shield') {
+        col = color(255, 215, 0, 200);
+        label = 'S';
+      } else if (powerUps[i].type === 'speed') {
+        col = color(0, 255, 0, 200);
+        label = 'V';
+      } else {
+        col = color(255, 0, 255, 200);
+        label = 'X';
+      }
+      push();
+      translate(powerUps[i].x, powerUps[i].y);
+      rotate(powerUps[i].angle);
+      fill(col);
+      let pulse = sin(frameCount * 0.1) * 5;
+      ellipse(0, 0, width * 0.06 + pulse, width * 0.06 + pulse);
+      fill(0);
       textAlign(CENTER);
       textSize(width * 0.03);
-      text("S", powerUps[i].x, powerUps[i].y + width * 0.01);
+      text(label, 0, width * 0.01);
+      pop();
 
       if (dist(playerX, playerY, powerUps[i].x, powerUps[i].y) < width * 0.06) {
         if (powerUps[i].type === 'shield') {
           shieldActive = true;
           shieldTimer = frameCount + 300;
+        } else if (powerUps[i].type === 'speed') {
+          speedBoostActive = true;
+          speedBoostTimer = frameCount + 200;
+          speed = min(speed * 1.5, 12);
+        } else if (powerUps[i].type === 'score') {
+          scoreBoostActive = true;
+          scoreBoostTimer = frameCount + 400;
         }
         powerUps.splice(i, 1);
+        if ('vibrate' in navigator) navigator.vibrate(50);
         continue;
       }
 
@@ -180,13 +246,15 @@ function draw() {
       }
     }
 
-    if (frameCount % 5 === 0) {
+    if (frameCount % 3 === 0 && particles.length < 40) {
       particles.push({
         x: playerX - width * 0.04,
         y: playerY - height * 0.08,
-        vx: random(-1, 1),
-        vy: random(-2, -1),
-        life: 60
+        vx: random(-1.5, 1.5),
+        vy: random(-3, -1),
+        life: 80,
+        size: random(width * 0.015, width * 0.025),
+        col: color(255, random(200, 255), 0, 255)
       });
     }
 
@@ -195,20 +263,31 @@ function draw() {
       p.x += p.vx;
       p.y += p.vy;
       p.life -= 1;
-      fill(200, 200, 200, p.life * 4);
+      fill(red(p.col), green(p.col), blue(p.col), p.life * 3);
       noStroke();
-      ellipse(p.x, p.y, width * 0.02, width * 0.02);
-      if (p.life <= 0 || particles.length > 50) {
+      ellipse(p.x, p.y, p.size, p.size);
+      if (p.life <= 0) {
         particles.splice(i, 1);
       }
     }
 
     speed = min(5 + score / 1000, 10);
-    score += 1;
+    score += scoreBoostActive ? 2 : 1;
+
+    if (floor(score / 10) >= 2000) {
+      gameState = 'win';
+      if (floor(score / 10) > highScore) {
+        highScore = floor(score / 10);
+        localStorage.setItem('highScore', highScore);
+      }
+      noLoop();
+    }
 
     fill(255);
     textSize(width * 0.04);
     textAlign(LEFT);
+    textStyle(BOLD);
+    textFont('Arial');
     text("Score: " + floor(score / 10), width * 0.02, height * 0.06);
     textAlign(RIGHT);
     text("High Score: " + highScore, width - width * 0.02, height * 0.06);
@@ -219,18 +298,44 @@ function draw() {
       localStorage.setItem('highScore', highScore);
     }
     drawBackground();
-    fill(255, 0, 0, 200);
+    fadeAlpha = lerp(fadeAlpha, 200, 0.05);
+    fill(255, 0, 0, fadeAlpha);
     rect(0, 0, width, height);
-    fill(255);
+    fill(255, 255 - fadeAlpha / 2);
     textSize(width * 0.08);
     textAlign(CENTER);
+    textStyle(BOLD);
+    textFont('Arial');
     text("Game Over!", width / 2, height / 2 - height * 0.1);
     textSize(width * 0.05);
+    textStyle(NORMAL);
     text("Score: " + floor(score / 10), width / 2, height / 2);
     text("High Score: " + highScore, width / 2, height / 2 + height * 0.06);
-    fill(0, 200, 0);
+    fill(0, 200, 0, 230 - fadeAlpha / 2);
     rect(width / 2 - width * 0.12, height / 2 + height * 0.1, width * 0.24, height * 0.08, 10);
-    fill(255);
+    fill(255, 255 - fadeAlpha / 2);
+    textSize(width * 0.04);
+    text("Play Again", width / 2, height / 2 + height * 0.15);
+    noLoop();
+  } else if (gameState === 'win') {
+    document.getElementById('pause-button').style.display = 'none';
+    drawBackground();
+    fadeAlpha = lerp(fadeAlpha, 200, 0.05);
+    fill(0, 255, 0, fadeAlpha);
+    rect(0, 0, width, height);
+    fill(255, 255 - fadeAlpha / 2);
+    textSize(width * 0.08);
+    textAlign(CENTER);
+    textStyle(BOLD);
+    textFont('Arial');
+    text("Victory!", width / 2, height / 2 - height * 0.1);
+    textSize(width * 0.05);
+    textStyle(NORMAL);
+    text("Score: " + floor(score / 10), width / 2, height / 2);
+    text("High Score: " + highScore, width / 2, height / 2 + height * 0.06);
+    fill(0, 200, 0, 230 - fadeAlpha / 2);
+    rect(width / 2 - width * 0.12, height / 2 + height * 0.1, width * 0.24, height * 0.08, 10);
+    fill(255, 255 - fadeAlpha / 2);
     textSize(width * 0.04);
     text("Play Again", width / 2, height / 2 + height * 0.15);
     noLoop();
@@ -241,6 +346,8 @@ function draw() {
     fill(255);
     textSize(width * 0.08);
     textAlign(CENTER);
+    textStyle(BOLD);
+    textFont('Arial');
     text("Paused", width / 2, height / 2);
     document.getElementById('pause-button').style.display = 'block';
     document.getElementById('pause-button').textContent = 'Resume';
@@ -252,14 +359,19 @@ function draw() {
   }
 }
 
+function drawPowerUpBar(timer, duration, col, yPos) {
+  let progress = (timer - frameCount) / duration;
+  fill(50, 50, 50, 200);
+  rect(width * 0.1, yPos, width * 0.8, height * 0.02, 5);
+  fill(col);
+  rect(width * 0.1, yPos, width * 0.8 * progress, height * 0.02, 5);
+}
+
 function updatePlayerMovement() {
-  // Chuột
   if (mouseX >= 0 && mouseX <= width) {
-    if (mouseX < width / 3) targetLane = lanes[0];
-    else if (mouseX < 2 * width / 3) targetLane = lanes[1];
-    else targetLane = lanes[2];
+    let closestLane = lanes.reduce((a, b) => Math.abs(b - mouseX) < Math.abs(a - mouseX) ? b : a);
+    targetLane = closestLane;
   }
-  // Cảm ứng
   if (touches.length > 0) {
     let touchX = touches[0].x;
     if (touchX < width / 3) targetLane = lanes[0];
@@ -280,16 +392,6 @@ function keyPressed() {
   }
 }
 
-function touchMoved() {
-  if (gameState === 'playing' && touches.length > 0) {
-    let touchX = touches[0].x;
-    if (touchX < width / 3) targetLane = lanes[0];
-    else if (touchX < 2 * width / 3) targetLane = lanes[1];
-    else targetLane = lanes[2];
-  }
-  return false;
-}
-
 function touchStarted() {
   if (gameState === 'playing' && touches.length > 0) {
     let touchX = touches[0].x;
@@ -298,6 +400,10 @@ function touchStarted() {
     else targetLane = lanes[2];
   }
   mousePressed();
+  return false;
+}
+
+function touchMoved() {
   return false;
 }
 
@@ -312,14 +418,16 @@ function mousePressed() {
     if (mouseX > buttonX && mouseX < buttonX + width * 0.24 && mouseY > buttonY && mouseY < buttonY + height * 0.08) {
       resetGame();
       gameState = 'playing';
+      fadeAlpha = 255;
       loop();
     }
-  } else if (gameState === 'gameOver') {
+  } else if (gameState === 'gameOver' || gameState === 'win') {
     let buttonX = width / 2 - width * 0.12;
     let buttonY = height / 2 + height * 0.1;
     if (mouseX > buttonX && mouseX < buttonX + width * 0.24 && mouseY > buttonY && mouseY < buttonY + height * 0.08) {
       resetGame();
       gameState = 'playing';
+      fadeAlpha = 255;
       loop();
     }
   }
@@ -342,92 +450,160 @@ function resetGame() {
   particles = [];
   clouds = [];
   trees = [];
+  stars = [];
   score = 0;
   speed = 5;
   playerX = lanes[1];
   targetLane = lanes[1];
   shieldActive = false;
+  speedBoostActive = false;
+  scoreBoostActive = false;
   shakeTimer = 0;
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 7; i++) {
     clouds.push({
       x: random(width),
       y: random(height * 0.1, height * 0.3),
-      size: random(50, 100)
+      size: random(60, 140),
+      speed: random(0.4, 1.0)
     });
   }
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 15; i++) {
     trees.push({
       x: random(width),
-      y: random(height * 0.4, height * 0.8)
+      y: random(height * 0.4, height * 0.8),
+      size: random(0.8, 1.2)
+    });
+  }
+  for (let i = 0; i < 50; i++) {
+    stars.push({
+      x: random(width),
+      y: random(height * 0.5),
+      size: random(1, 3),
+      alpha: random(100, 255)
     });
   }
 }
 
 function drawBackground() {
   for (let y = 0; y < height * 0.5; y++) {
-    let c = lerpColor(color(135, 206, 235), color(0, 0, 50), y / (height * 0.5));
+    let c = lerpColor(color(10, 20, 80), color(0, 0, 20), y / (height * 0.5));
     stroke(c);
     line(0, y, width, y);
   }
   fill(34, 139, 34);
   rect(0, height * 0.5, width, height * 0.5);
 
-  fill(100, 100, 100);
-  triangle(width * 0.2, height * 0.5, width * 0.4, height * 0.3, width * 0.6, height * 0.5);
-  triangle(width * 0.7, height * 0.5, width * 0.9, height * 0.35, width * 1.1, height * 0.5);
+  for (let star of stars) {
+    fill(255, 255, 255, star.alpha * (0.8 + 0.2 * sin(frameCount * 0.05)));
+    noStroke();
+    ellipse(star.x, star.y, star.size, star.size);
+  }
+
+  fill(80, 80, 80);
+  triangle(width * 0.15, height * 0.5, width * 0.35, height * 0.25, width * 0.55, height * 0.5);
+  triangle(width * 0.65, height * 0.5, width * 0.85, height * 0.3, width * 1.05, height * 0.5);
 
   for (let cloud of clouds) {
-    cloud.x -= 0.5;
+    cloud.x -= cloud.speed;
     if (cloud.x < -cloud.size) cloud.x = width + cloud.size;
-    fill(255, 255, 255, 200);
+    fill(255, 255, 255, 180);
     noStroke();
     ellipse(cloud.x, cloud.y, cloud.size, cloud.size * 0.6);
     ellipse(cloud.x + cloud.size * 0.3, cloud.y - cloud.size * 0.2, cloud.size * 0.7, cloud.size * 0.5);
+    ellipse(cloud.x - cloud.size * 0.3, cloud.y - cloud.size * 0.1, cloud.size * 0.6, cloud.size * 0.4);
   }
 
   for (let tree of trees) {
     tree.y += speed * 0.5;
     if (tree.y > height + height * 0.1) tree.y = -height * 0.1;
     fill(139, 69, 19);
-    rect(tree.x - width * 0.01, tree.y - height * 0.06, width * 0.02, height * 0.06);
+    rect(tree.x - width * 0.01 * tree.size, tree.y - height * 0.06 * tree.size, width * 0.02 * tree.size, height * 0.06 * tree.size);
     fill(0, 100, 0);
-    ellipse(tree.x, tree.y - height * 0.08, width * 0.06, width * 0.06);
+    ellipse(tree.x, tree.y - height * 0.08 * tree.size, width * 0.06 * tree.size, width * 0.06 * tree.size);
+    ellipse(tree.x - width * 0.03 * tree.size, tree.y - height * 0.06 * tree.size, width * 0.04 * tree.size, width * 0.04 * tree.size);
+    ellipse(tree.x + width * 0.03 * tree.size, tree.y - height * 0.06 * tree.size, width * 0.04 * tree.size, width * 0.04 * tree.size);
   }
 }
 
 function drawRails() {
   for (let lane of lanes) {
-    stroke(100);
-    strokeWeight(width * 0.008);
-    line(lane, 0, lane, height);
+    stroke(80);
+    strokeWeight(width * 0.01);
+    line(lane - width * 0.005, 0, lane - width * 0.005, height);
+    stroke(120);
+    line(lane + width * 0.005, 0, lane + width * 0.005, height);
     for (let y = bgY; y < height; y += height * 0.05) {
       fill(139, 69, 19);
       noStroke();
       rect(lane - width * 0.05, y - height * 0.01, width * 0.1, height * 0.02);
       fill(169, 169, 169);
-      ellipse(lane - width * 0.04, y, width * 0.008, width * 0.008);
-      ellipse(lane + width * 0.04, y, width * 0.008, width * 0.008);
+      ellipse(lane - width * 0.04, y, width * 0.01, width * 0.01);
+      ellipse(lane + width * 0.04, y, width * 0.01, width * 0.01);
     }
   }
   bgY = (bgY + speed) % (height * 0.05);
 }
 
 function drawPlayer() {
-  for (let r = width * 0.1; r > 0; r -= 5) {
+  let bounce = sin(frameCount * 0.2) * 2;
+  let pulse = sin(frameCount * 0.1) * 5;
+  for (let r = width * 0.12 + pulse; r > 0; r -= 4) {
     fill(255, 215, 0, 10);
     noStroke();
     ellipse(playerX, playerY, r, r);
   }
   fill(0, 100, 200);
-  rect(playerX - width * 0.05, playerY - height * 0.08, width * 0.1, height * 0.16, 10);
+  rect(playerX - width * 0.05, playerY - height * 0.08 + bounce, width * 0.1, height * 0.16, 10);
   fill(200, 0, 0);
-  rect(playerX - width * 0.05, playerY - height * 0.08, width * 0.1, height * 0.04, 5);
+  rect(playerX - width * 0.05, playerY - height * 0.08 + bounce, width * 0.1, height * 0.04, 5);
   fill(255);
-  rect(playerX - width * 0.03, playerY - height * 0.06, width * 0.02, height * 0.02);
-  rect(playerX + width * 0.01, playerY - height * 0.06, width * 0.02, height * 0.02);
+  rect(playerX - width * 0.03, playerY - height * 0.06 + bounce, width * 0.02, height * 0.02);
+  rect(playerX + width * 0.01, playerY - height * 0.06 + bounce, width * 0.02, height * 0.02);
   fill(0);
-  ellipse(playerX - width * 0.03, playerY + height * 0.06, width * 0.04, width * 0.04);
-  ellipse(playerX + width * 0.03, playerY + height * 0.06, width * 0.04, width * 0.04);
+  push();
+  translate(playerX - width * 0.03, playerY + height * 0.06 + bounce);
+  rotate(frameCount * 0.2);
+  ellipse(0, 0, width * 0.04, width * 0.04);
+  pop();
+  push();
+  translate(playerX + width * 0.03, playerY + height * 0.06 + bounce);
+  rotate(frameCount * 0.2);
+  ellipse(0, 0, width * 0.04, width * 0.04);
+  pop();
+}
+
+function drawObstacle(x, y, size) {
+  fill(50);
+  rect(x - size / 2, y - size / 2, size, size, 5);
+  for (let i = -size / 2; i < size / 2; i += 4) {
+    for (let j = -size / 2; j < size / 2; j += 4) {
+      let n = noise(i * 0.05, j * 0.05, frameCount * 0.02) * 50;
+      fill(100 + n, 100 + n, 100 + n, 200);
+      rect(x + i, y + j, 4, 4);
+    }
+  }
+  fill(169, 169, 169);
+  let wheelSize = size * 0.2;
+  push();
+  translate(x - size * 0.3, y - size * 0.3);
+  rotate(frameCount * 0.2);
+  ellipse(0, 0, wheelSize, wheelSize);
+  pop();
+  push();
+  translate(x + size * 0.3, y - size * 0.3);
+  rotate(frameCount * 0.2);
+  ellipse(0, 0, wheelSize, wheelSize);
+  pop();
+  push();
+  translate(x - size * 0.3, y + size * 0.3);
+  rotate(frameCount * 0.2);
+  ellipse(0, 0, wheelSize, wheelSize);
+  pop();
+  push();
+  translate(x + size * 0.3, y + size * 0.3);
+  rotate(frameCount * 0.2);
+  ellipse(0, 0, wheelSize, wheelSize);
+  pop();
 }
 </script>
 </body>
