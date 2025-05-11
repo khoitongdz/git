@@ -1,132 +1,123 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>index</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <title>game test</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: 'Roboto', sans-serif;
-      background: url('https://upload.wikimedia.org/wikipedia/commons/1/1f/Vietnam_Military_Parade_2024.jpg') no-repeat center center fixed;
-      background-size: cover;
-      color: #333;
-      overflow-x: hidden;
-    }
-    .container {
-      max-width: 900px;
-      margin: 60px auto;
-      padding: 30px;
-      background-color: #ffffffcc;
-      backdrop-filter: blur(10px);
-      border-radius: 15px;
-      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
-      animation: fadeIn 1s ease-in-out;
-      transition: transform 0.3s ease;
-    }
-    .container:hover {
-      transform: scale(1.01);
-    }
-    h1 {
-      font-size: 32px;
-      text-align: center;
-      color: #d32f2f;
-      margin-bottom: 30px;
-      text-shadow: 1px 1px 2px #888;
-      animation: slideDown 1s ease-out;
-    }
-    p {
-      font-size: 18px;
-      line-height: 1.8;
-      text-align: justify;
-      margin-bottom: 20px;
-      opacity: 0;
-      animation: fadeInUp 1s forwards;
-    }
-    p:nth-child(3) { animation-delay: 0.3s; }
-    p:nth-child(4) { animation-delay: 0.6s; }
-    p:nth-child(5) { animation-delay: 0.9s; }
-    p:nth-child(6) { animation-delay: 1.2s; }
-    p:last-of-type { animation-delay: 1.5s; }
-
-    .highlight {
-      font-weight: bold;
-      color: #c62828;
-      background: linear-gradient(to right, #ffcccb, #ffe0b2);
-      padding: 0 4px;
-      border-radius: 4px;
-      transition: background 0.3s ease;
-    }
-    .highlight:hover {
-      background: linear-gradient(to right, #ffe0b2, #ffcccb);
-    }
-
-    .social-share {
-      text-align: center;
-      margin-top: 30px;
-      animation: fadeIn 1.5s ease forwards;
-    }
-    .social-share button {
-      margin: 0 10px;
-      padding: 10px 20px;
-      font-size: 16px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      background-color: #1976d2;
-      color: white;
-      transition: background 0.3s ease, transform 0.2s;
-    }
-    .social-share button:hover {
-      background-color: #0d47a1;
-      transform: scale(1.1);
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
-    }
-    @keyframes slideDown {
-      from { transform: translateY(-30px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    body { margin: 0; display: flex; justify-content: center; align-items: center; background: #222; }
+    canvas { border: 2px solid #444; }
   </style>
 </head>
 <body>
-  <audio autoplay loop>
-    <source src="https://cdn.pixabay.com/download/audio/2023/03/01/audio_5b3df41901.mp3" type="audio/mpeg">
-    Trình duyệt của bạn không hỗ trợ âm thanh.
-  </audio>
+<script>
+let playerX, playerY;
+let obstacles = [];
+let score = 0;
+let gameOver = false;
+let lanes = [150, 250, 350];
+let speed = 5;
+let bgY = 0;
 
-  <div class="container">
-    <h1>Cảm nghĩ về buổi diễu binh kỷ niệm 50 năm Ngày Giải phóng miền Nam (30/4/2025)</h1>
+function setup() {
+  createCanvas(500, 400);
+  playerX = lanes[1];
+  playerY = 320;
+}
 
-    <p>Ngày 30/4 luôn là dấu mốc thiêng liêng trong trái tim mỗi người dân Việt Nam – ngày đất nước hoàn toàn thống nhất, non sông thu về một mối. Năm nay, nhân dịp kỷ niệm 50 năm Ngày Giải phóng miền Nam, buổi diễu binh diễn ra trang trọng tại trung tâm TP. Hồ Chí Minh đã để lại trong tôi nhiều cảm xúc khó quên.</p>
+function draw() {
+  // Draw animated background
+  background(50, 50, 80);
+  for (let y = bgY; y < height; y += 20) {
+    stroke(150);
+    line(0, y, width, y);
+  }
+  bgY = (bgY + 1) % 20;
 
-    <p>Khi các khối diễu binh bắt đầu tiến qua lễ đài, lòng tôi dâng trào một <span class="highlight">niềm tự hào và ngưỡng mộ</span> khó diễn tả. Hơn 13.000 người – từ lực lượng quân đội, công an, dân quân tự vệ đến các đoàn thanh niên, phụ nữ, học sinh – sải bước hiên ngang trong đội hình nghiêm trang, chỉnh tề. Mỗi bước chân đều đặn như nhịp đập mạnh mẽ của Tổ quốc, hòa cùng tiếng nhạc hào hùng vang lên giữa trời xanh. Những ánh mắt kiên định, sắc phục chỉnh tề và những lá cờ đỏ sao vàng tung bay phấp phới như gửi đi một thông điệp bất diệt về ý chí vững vàng và quyết tâm bảo vệ đất nước của thế hệ hôm nay.</p>
+  // Draw rails
+  for (let i = 0; i < 3; i++) {
+    stroke(100);
+    strokeWeight(4);
+    line(lanes[i], 0, lanes[i], height);
+  }
 
-    <p>Tôi đặc biệt xúc động khi chứng kiến hình ảnh các <span class="highlight">cựu chiến binh</span> – những người từng trực tiếp cầm súng chiến đấu trong những năm tháng gian lao của cuộc kháng chiến. Dù tuổi cao, mái tóc đã bạc trắng, nhưng họ vẫn bước đi chậm rãi mà đầy kiêu hãnh. Ánh mắt của họ ánh lên niềm tin và sự tự hào khi chứng kiến thế hệ trẻ tiếp nối truyền thống, tiếp bước xây dựng và bảo vệ Tổ quốc. Nhìn họ, tôi cảm thấy bồi hồi, biết ơn và khâm phục vô hạn trước những cống hiến, hy sinh của một thế hệ anh hùng.</p>
+  // Move player based on mouse
+  if (!gameOver) {
+    let targetLane = lanes[0];
+    if (mouseX < width / 3) targetLane = lanes[0];
+    else if (mouseX < 2 * width / 3) targetLane = lanes[1];
+    else targetLane = lanes[2];
+    playerX = lerp(playerX, targetLane, 0.1); // Smooth movement
+  }
 
-    <p>Buổi diễu binh không chỉ là một lễ kỷ niệm lịch sử mà còn là một <span class="highlight">bài học sống động</span> về lòng yêu nước, sự tri ân và trách nhiệm. Nó nhắc nhở tôi rằng hòa bình hôm nay không tự nhiên mà có, mà được đánh đổi bằng máu xương của biết bao thế hệ đi trước. Là một người trẻ, tôi càng thấy rõ hơn vai trò của mình: phải ra sức học tập, rèn luyện, sống có lý tưởng để xứng đáng với những hy sinh ấy và góp phần đưa đất nước ngày càng phát triển.</p>
+  // Draw player (simple train)
+  fill(0, 100, 200);
+  rect(playerX - 20, playerY - 30, 40, 60, 10);
+  fill(0);
+  ellipse(playerX - 15, playerY + 20, 15, 15);
+  ellipse(playerX + 15, playerY + 20, 15, 15);
 
-    <p>Buổi lễ kết thúc, nhưng những hình ảnh trang nghiêm và xúc động của ngày hôm đó vẫn còn đọng mãi trong tâm trí tôi. <span class="highlight">Diễu binh 30/4/2025</span> không chỉ là một sự kiện trọng đại, mà còn là một lời nhắc nhở thiêng liêng về lịch sử, là ngọn lửa thôi thúc mỗi người dân Việt Nam thêm yêu nước, tự hào và sẵn sàng cống hiến vì tương lai dân tộc.</p>
+  // Update and draw obstacles
+  if (!gameOver) {
+    if (frameCount % 60 === 0) {
+      let lane = lanes[floor(random(3))];
+      obstacles.push({ x: lane, y: -30 });
+    }
 
-    <p>Khép lại buổi diễu binh đầy cảm xúc, tôi lặng lẽ nhìn lên bầu trời trong xanh, nơi những cánh chim vẫn tung bay như biểu tượng cho khát vọng tự do và hòa bình. Trong khoảnh khắc ấy, tôi cảm nhận sâu sắc rằng, dù thời gian có trôi qua, nhưng <span class="highlight">tinh thần bất khuất của dân tộc Việt Nam</span> sẽ luôn sống mãi trong tim mỗi người con đất Việt. Tôi thấy lòng mình ấm lại, trào dâng một niềm tin mạnh mẽ vào tương lai. Tự hào là người Việt Nam – đó không chỉ là một cảm xúc, mà là một phần thiêng liêng trong trái tim tôi.</p>
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      obstacles[i].y += speed;
+      fill(139, 69, 19); // Wooden crate color
+      rect(obstacles[i].x - 20, obstacles[i].y - 20, 40, 40, 5);
+      fill(100);
+      rect(obstacles[i].x - 15, obstacles[i].y - 15, 30, 30, 5);
 
-    <div class="social-share">
-      <button onclick="window.open('https://www.facebook.com/sharer/sharer.php?u=' + window.location.href, '_blank')">Chia sẻ Facebook</button>
-      <button onclick="window.open('https://twitter.com/intent/tweet?url=' + window.location.href, '_blank')">Chia sẻ Twitter</button>
-      <button onclick="window.open('https://www.linkedin.com/shareArticle?mini=true&url=' + window.location.href, '_blank')">Chia sẻ LinkedIn</button>
-    </div>
-  </div>
+      // Check collision
+      if (dist(playerX, playerY, obstacles[i].x, obstacles[i].y) < 40) {
+        gameOver = true;
+      }
+
+      // Remove obstacles off screen
+      if (obstacles[i].y > height + 30) {
+        obstacles.splice(i, 1);
+      }
+    }
+
+    // Increase difficulty
+    speed = 5 + score / 1000;
+    score += 1;
+  }
+
+  // Display score
+  fill(255);
+  textSize(20);
+  textAlign(LEFT);
+  text("Score: " + floor(score / 10), 10, 30);
+
+  // Game over screen
+  if (gameOver) {
+    fill(255, 0, 0, 200);
+    rect(0, 0, width, height);
+    fill(255);
+    textSize(40);
+    textAlign(CENTER);
+    text("Game Over!", width / 2, height / 2);
+    textSize(24);
+    text("Score: " + floor(score / 10), width / 2, height / 2 + 50);
+    noLoop();
+  }
+}
+
+function mousePressed() {
+  if (gameOver) {
+    // Reset game
+    obstacles = [];
+    score = 0;
+    speed = 5;
+    playerX = lanes[1];
+    gameOver = false;
+    loop();
+  }
+}
+</script>
 </body>
 </html>
