@@ -63,29 +63,43 @@ let shake = 0;
 let skins = ['red', 'blue', 'green', 'purple'];
 let skinColor = 'blue';
 let bgMusic;
+let gameStarted = false;
 
 function preload() {
-  bgMusic = loadSound('https://cdn.pixabay.com/audio/2022/10/20/audio_b7a3e2de4c.mp3'); // Royalty-free loop
+  soundFormats('mp3');
+  bgMusic = loadSound('https://cdn.pixabay.com/audio/2022/10/20/audio_b7a3e2de4c.mp3');
 }
 
-function setup() {
+function startGame() {
+  document.getElementById("menu").style.display = "none";
+  if (!gameStarted) {
+    gameStarted = true;
+    setupGame();
+    loop();
+    if (!bgMusic.isPlaying()) {
+      bgMusic.setVolume(0.2);
+      bgMusic.loop();
+    }
+  }
+}
+
+function setupGame() {
   createCanvas(500, 400);
   textFont('Arial');
   highscore = localStorage.getItem("deadrails_highscore") || 0;
   skinColor = random(skins);
   playerX = lanes[1];
   playerY = 320;
-  bgMusic.setVolume(0.2);
-  bgMusic.loop();
 }
 
 function draw() {
+  if (!gameStarted) return;
+
   if (shake > 0) {
     translate(random(-5, 5), random(-5, 5));
     shake--;
   }
 
-  // Background
   background(30, 30, 60);
   for (let y = bgY; y < height; y += 20) {
     stroke(90);
@@ -93,28 +107,24 @@ function draw() {
   }
   bgY = (bgY + 1) % 20;
 
-  // Rails
   for (let i = 0; i < 3; i++) {
     stroke(80);
     strokeWeight(3);
     line(lanes[i], 0, lanes[i], height);
   }
 
-  // Move player
   if (!gameOver) {
     let targetLane = mouseX < width / 3 ? lanes[0] :
                      mouseX < 2 * width / 3 ? lanes[1] : lanes[2];
     playerX = lerp(playerX, targetLane, 0.1);
   }
 
-  // Draw player
   fill(skinColor);
   rect(playerX - 20, playerY - 30, 40, 60, 10);
   fill(20);
   ellipse(playerX - 15, playerY + 20, 15);
   ellipse(playerX + 15, playerY + 20, 15);
 
-  // Obstacles
   if (!gameOver && frameCount % 60 === 0) {
     let lane = lanes[int(random(3))];
     obstacles.push({ x: lane, y: -30 });
@@ -143,21 +153,18 @@ function draw() {
     }
   }
 
-  // Update score/level
   if (!gameOver) {
     score++;
     level = 1 + int(score / 1000);
     speed = 5 + level;
   }
 
-  // Flash screen on hit
   if (flash > 0) {
     fill(255, 0, 0, 120);
     rect(0, 0, width, height);
     flash--;
   }
 
-  // Score UI
   fill(255);
   textSize(18);
   textAlign(LEFT);
@@ -165,7 +172,6 @@ function draw() {
   text("Level: " + level, 10, 55);
   text("Highscore: " + floor(highscore / 10), 10, 80);
 
-  // Game over popup
   if (gameOver) {
     fill(0, 0, 0, 180);
     rect(50, 100, 400, 200, 20);
@@ -196,10 +202,6 @@ function resetGame() {
   gameOver = false;
   loop();
   bgMusic.loop();
-}
-
-function startGame() {
-  document.getElementById("menu").style.display = "none";
 }
 </script>
 </body>
