@@ -1,15 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>game test</title>
+  <meta charset="UTF-8" />
+  <title>Dead Rails</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/addons/p5.sound.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
-    body { margin: 0; display: flex; justify-content: center; align-items: center; background: #222; }
-    canvas { border: 2px solid #444; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: 'Press Start 2P', monospace;
+      overflow: hidden;
+    }
+    canvas {
+      border: 3px solid #666;
+      box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+    }
+    #menu, #popup {
+      position: absolute;
+      background: rgba(20, 20, 30, 0.95);
+      color: white;
+      text-align: center;
+      border-radius: 12px;
+      padding: 20px;
+      font-size: 16px;
+      z-index: 10;
+      font-family: 'Press Start 2P', monospace;
+    }
+    #menu {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    #popup {
+      display: none;
+    }
+    button {
+      padding: 12px 25px;
+      background: #0ff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: 'Press Start 2P', monospace;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #0cc;
+    }
   </style>
 </head>
 <body>
+<div id="menu">
+  <h2>🚂 Dead Rails</h2>
+  <button onclick="startGame()">Play</button>
+</div>
+<div id="popup"></div>
+
 <script>
 let playerX, playerY;
 let obstacles = [];
@@ -17,106 +70,172 @@ let score = 0;
 let gameOver = false;
 let lanes = [150, 250, 350];
 let speed = 5;
-let bgY = 0;
+let bgOffset = 0;
+let flashAlpha = 0;
+let shake = 0;
+let playing = false;
+
+let crashSound, music;
+
+function preload() {
+  soundFormats('mp3', 'ogg');
+  crashSound = loadSound('https://cdn.pixabay.com/download/audio/2022/03/15/audio_9ac3587e83.mp3?filename=video-game-crash-142365.mp3');
+  music = loadSound('https://cdn.pixabay.com/download/audio/2022/03/10/audio_9be4f3ff3c.mp3?filename=retro-funk-loop-131122.mp3');
+}
 
 function setup() {
-  createCanvas(500, 400);
+  let cnv = createCanvas(500, 400);
+  cnv.parent(document.body);
+  textFont('Press Start 2P');
   playerX = lanes[1];
   playerY = 320;
+  noLoop();
 }
 
 function draw() {
-  // Draw animated background
-  background(50, 50, 80);
-  for (let y = bgY; y < height; y += 20) {
-    stroke(150);
-    line(0, y, width, y);
-  }
-  bgY = (bgY + 1) % 20;
+  if (!playing) return;
 
-  // Draw rails
-  for (let i = 0; i < 3; i++) {
-    stroke(100);
-    strokeWeight(4);
-    line(lanes[i], 0, lanes[i], height);
+  if (shake > 0) {
+    translate(random(-5, 5), random(-5, 5));
+    shake--;
   }
 
-  // Move player based on mouse
+  drawBackground();
+  drawRails();
+
   if (!gameOver) {
-    let targetLane = lanes[0];
-    if (mouseX < width / 3) targetLane = lanes[0];
-    else if (mouseX < 2 * width / 3) targetLane = lanes[1];
-    else targetLane = lanes[2];
-    playerX = lerp(playerX, targetLane, 0.1); // Smooth movement
-  }
-
-  // Draw player (simple train)
-  fill(0, 100, 200);
-  rect(playerX - 20, playerY - 30, 40, 60, 10);
-  fill(0);
-  ellipse(playerX - 15, playerY + 20, 15, 15);
-  ellipse(playerX + 15, playerY + 20, 15, 15);
-
-  // Update and draw obstacles
-  if (!gameOver) {
-    if (frameCount % 60 === 0) {
-      let lane = lanes[floor(random(3))];
-      obstacles.push({ x: lane, y: -30 });
-    }
-
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-      obstacles[i].y += speed;
-      fill(139, 69, 19); // Wooden crate color
-      rect(obstacles[i].x - 20, obstacles[i].y - 20, 40, 40, 5);
-      fill(100);
-      rect(obstacles[i].x - 15, obstacles[i].y - 15, 30, 30, 5);
-
-      // Check collision
-      if (dist(playerX, playerY, obstacles[i].x, obstacles[i].y) < 40) {
-        gameOver = true;
-      }
-
-      // Remove obstacles off screen
-      if (obstacles[i].y > height + 30) {
-        obstacles.splice(i, 1);
-      }
-    }
-
-    // Increase difficulty
-    speed = 5 + score / 1000;
+    movePlayer();
+    handleObstacles();
     score += 1;
+    speed = 5 + score / 1000;
   }
 
-  // Display score
-  fill(255);
-  textSize(20);
-  textAlign(LEFT);
-  text("Score: " + floor(score / 10), 10, 30);
+  drawPlayer();
+  drawScore();
 
-  // Game over screen
-  if (gameOver) {
-    fill(255, 0, 0, 200);
+  if (flashAlpha > 0) {
+    fill(255, 0, 0, flashAlpha);
     rect(0, 0, width, height);
-    fill(255);
-    textSize(40);
-    textAlign(CENTER);
-    text("Game Over!", width / 2, height / 2);
-    textSize(24);
-    text("Score: " + floor(score / 10), width / 2, height / 2 + 50);
+    flashAlpha -= 10;
+  }
+
+  if (gameOver) {
+    showGameOverPopup();
     noLoop();
   }
 }
 
+function drawBackground() {
+  background(30, 30, 60);
+  for (let y = bgOffset; y < height; y += 20) {
+    stroke(80, 80, 120);
+    line(0, y, width, y);
+  }
+  bgOffset = (bgOffset + 2) % 20;
+}
+
+function drawRails() {
+  stroke(100);
+  strokeWeight(3);
+  for (let lane of lanes) {
+    line(lane, 0, lane, height);
+  }
+}
+
+function movePlayer() {
+  let targetLane = lanes[1];
+  if (mouseX < width / 3) targetLane = lanes[0];
+  else if (mouseX < 2 * width / 3) targetLane = lanes[1];
+  else targetLane = lanes[2];
+  playerX = lerp(playerX, targetLane, 0.1);
+}
+
+function drawPlayer() {
+  fill(0, 120, 250);
+  rect(playerX - 20, playerY - 30, 40, 60, 10);
+  fill(255);
+  ellipse(playerX - 15, playerY + 20, 15);
+  ellipse(playerX + 15, playerY + 20, 15);
+}
+
+function handleObstacles() {
+  if (frameCount % 60 === 0) {
+    let lane = random(lanes);
+    obstacles.push({ x: lane, y: -40 });
+  }
+
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    let obs = obstacles[i];
+    obs.y += speed;
+
+    fill(139, 69, 19);
+    rect(obs.x - 20, obs.y - 20, 40, 40, 6);
+    fill(80);
+    rect(obs.x - 15, obs.y - 15, 30, 30, 6);
+
+    if (dist(playerX, playerY, obs.x, obs.y) < 40) {
+      gameOver = true;
+      flashAlpha = 200;
+      shake = 20;
+      crashSound.play();
+      music.stop();
+    }
+
+    if (obs.y > height + 40) {
+      obstacles.splice(i, 1);
+    }
+  }
+}
+
+function drawScore() {
+  fill(255);
+  textSize(14);
+  textAlign(LEFT);
+  text("Score: " + floor(score / 10), 20, 30);
+}
+
+function showGameOverPopup() {
+  let popup = document.getElementById("popup");
+  popup.innerHTML = `
+    <h3>💀 GAME OVER</h3>
+    <p>Score: ${floor(score / 10)}</p>
+    <button onclick="resetGame()">Play Again</button>
+  `;
+  popup.style.left = "50%";
+  popup.style.top = "50%";
+  popup.style.transform = "translate(-50%, -50%)";
+  popup.style.display = "block";
+}
+
 function mousePressed() {
   if (gameOver) {
-    // Reset game
-    obstacles = [];
-    score = 0;
-    speed = 5;
-    playerX = lanes[1];
-    gameOver = false;
-    loop();
+    resetGame();
   }
+}
+
+function startGame() {
+  document.getElementById("menu").style.display = "none";
+  obstacles = [];
+  score = 0;
+  speed = 5;
+  playerX = lanes[1];
+  gameOver = false;
+  playing = true;
+  music.loop();
+  loop();
+}
+
+function resetGame() {
+  document.getElementById("popup").style.display = "none";
+  obstacles = [];
+  score = 0;
+  speed = 5;
+  playerX = lanes[1];
+  gameOver = false;
+  shake = 0;
+  flashAlpha = 0;
+  music.loop();
+  loop();
 }
 </script>
 </body>
