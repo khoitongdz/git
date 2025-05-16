@@ -3,608 +3,270 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>đua tàu=))</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <link rel="icon" href="https://images-ext-1.discordapp.net/external/oY3IzCcrSLI8TfqjZf_TDPN5whbviE_PGqQqzJd2GYE/%3Fsize%3D4096/https/cdn.discordapp.com/avatars/1253726505402499203/6602147533b258ea90daf9b2c4a45176.png?format=webp&quality=lossless&width=476&height=476" type="image/png">                         
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
-  <style>
-    body { margin: 0; overflow: hidden; background: #111; }
-    canvas { display: block; }
-    #pause-button {
-      position: absolute;
-      top: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 12px 24px;
-      background: linear-gradient(#0a0, #080);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 18px;
-      font-family: Arial, sans-serif;
-      z-index: 1000;
-      display: none;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.5);
-      transition: background 0.2s;
-    }
-    #pause-button:hover {
-      background: linear-gradient(#0c0, #0a0);
-    }
-  </style>
+  <title>Lua Deobfuscator - Advanced</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/babel-standalone@7.22.9/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.3/dist/tailwind.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lua5.1.js@0.2.0/dist/lua.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luaparse@0.3.1/luaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-lua.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
 </head>
-<body>
-  <button id="pause-button" onclick="togglePause()">Pause</button>
-<script>
-let playerX, playerY;
-let obstacles = [];
-let powerUps = [];
-let particles = [];
-let clouds = [];
-let trees = [];
-let stars = [];
-let score = 0;
-let highScore = localStorage.getItem('highScore') ? parseInt(localStorage.getItem('highScore')) : 0;
-let gameState = 'menu';
-let lanes;
-let speed = 5;
-let bgY = 0;
-let shieldActive = false;
-let speedBoostActive = false;
-let scoreBoostActive = false;
-let shieldTimer = 0;
-let speedBoostTimer = 0;
-let scoreBoostTimer = 0;
-let shakeTimer = 0;
-let shakeOffsetX = 0;
-let shakeOffsetY = 0;
-let targetLane;
-let fadeAlpha = 255;
+<body class="bg-gray-100">
+  <div id="root" class="container mx-auto p-4"></div>
 
-function setup() {
-  createCanvas(windowWidth, windowHeight);
-  lanes = [width * 0.3, width * 0.5, width * 0.7];
-  playerX = lanes[1];
-  playerY = height - height * 0.2;
-  targetLane = lanes[1];
-  for (let i = 0; i < 7; i++) {
-    clouds.push({
-      x: random(width),
-      y: random(height * 0.1, height * 0.3),
-      size: random(60, 140),
-      speed: random(0.4, 1.0)
-    });
-  }
-  for (let i = 0; i < 15; i++) {
-    trees.push({
-      x: random(width),
-      y: random(height * 0.4, height * 0.8),
-      size: random(0.8, 1.2)
-    });
-  }
-  for (let i = 0; i < 50; i++) {
-    stars.push({
-      x: random(width),
-      y: random(height * 0.5),
-      size: random(1, 3),
-      alpha: random(100, 255)
-    });
-  }
-}
+  <script type="text/babel">
+    function LuaDeobfuscator() {
+      const [inputCode, setInputCode] = React.useState('');
+      const [outputCode, setOutputCode] = React.useState('');
+      const [error, setError] = React.useState('');
+      const [log, setLog] = React.useState([]);
+      const [loading, setLoading] = React.useState(false);
 
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
-  lanes = [width * 0.3, width * 0.5, width * 0.7];
-  playerX = lanes[1];
-  playerY = height - height * 0.2;
-  targetLane = lanes[1];
-}
+      // Hàm thêm log
+      const addLog = (message) => {
+        setLog((prev) => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+      };
 
-function draw() {
-  if (shakeTimer > 0) {
-    shakeOffsetX = random(-5, 5);
-    shakeOffsetY = random(-5, 5);
-    shakeTimer--;
-    translate(shakeOffsetX, shakeOffsetY);
-  }
-
-  if (gameState === 'menu') {
-    drawBackground();
-    fadeAlpha = lerp(fadeAlpha, 0, 0.05);
-    fill(0, 0, 0, fadeAlpha);
-    rect(0, 0, width, height);
-    fill(255, 255, 255, 255 - fadeAlpha);
-    textSize(width * 0.08);
-    textAlign(CENTER);
-    textStyle(BOLD);
-    textFont('Arial');
-    text("Dead Rails", width / 2, height / 2 - height * 0.1);
-    fill(0, 200, 0, 230 - fadeAlpha);
-    rect(width / 2 - width * 0.12, height / 2, width * 0.24, height * 0.08, 10);
-    fill(255, 255 - fadeAlpha);
-    textSize(width * 0.04);
-    textStyle(NORMAL);
-    text("Start Game", width / 2, height / 2 + height * 0.05);
-    document.getElementById('pause-button').style.display = 'none';
-  } else if (gameState === 'playing') {
-    document.getElementById('pause-button').style.display = 'block';
-    document.getElementById('pause-button').textContent = 'Pause';
-
-    drawBackground();
-    drawRails();
-
-    updatePlayerMovement();
-    playerX = lerp(playerX, targetLane, 0.3);
-
-    drawPlayer();
-
-    if (shieldActive) {
-      if (frameCount > shieldTimer) {
-        shieldActive = false;
-      } else {
-        noFill();
-        stroke(255, 215, 0, 200);
-        strokeWeight(4);
-        ellipse(playerX, playerY, width * 0.12, width * 0.12);
-        noStroke();
-        drawPowerUpBar(shieldTimer, 300, color(255, 215, 0), height * 0.08);
-      }
-    }
-    if (speedBoostActive) {
-      if (frameCount > speedBoostTimer) {
-        speedBoostActive = false;
-        speed = min(5 + score / 1000, 10);
-      } else {
-        drawPowerUpBar(speedBoostTimer, 200, color(0, 255, 0), height * 0.12);
-      }
-    }
-    if (scoreBoostActive) {
-      if (frameCount > scoreBoostTimer) {
-        scoreBoostActive = false;
-      } else {
-        drawPowerUpBar(scoreBoostTimer, 400, color(255, 0, 255), height * 0.16);
-      }
-    }
-
-    let obstacleFrequency = 60 - floor(score / 300);
-    obstacleFrequency = max(obstacleFrequency, 25);
-    if (frameCount % obstacleFrequency === 0) {
-      let lane = lanes[floor(random(3))];
-      let type = random() < 0.3 ? 'large' : 'small';
-      obstacles.push({ x: lane, y: -height * 0.06, type });
-    }
-
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-      obstacles[i].y += speed;
-      let size = obstacles[i].type === 'large' ? width * 0.12 : width * 0.1;
-      drawObstacle(obstacles[i].x, obstacles[i].y, size);
-
-      if (!shieldActive && dist(playerX, playerY, obstacles[i].x, obstacles[i].y) < size * 0.6) {
-        gameState = 'gameOver';
-        shakeTimer = 15;
-        if ('vibrate' in navigator) navigator.vibrate(200);
-        break;
-      }
-
-      if (obstacles[i].y > height + height * 0.06) {
-        obstacles.splice(i, 1);
-      }
-    }
-
-    if (frameCount % 150 === 0) {
-      let lane = lanes[floor(random(3))];
-      let type = random(['shield', 'speed', 'score']);
-      powerUps.push({ x: lane, y: -height * 0.06, type, angle: 0 });
-    }
-
-    for (let i = powerUps.length - 1; i >= 0; i--) {
-      powerUps[i].y += speed;
-      powerUps[i].angle += 0.05;
-      let col;
-      let label;
-      if (powerUps[i].type === 'shield') {
-        col = color(255, 215, 0, 200);
-        label = 'S';
-      } else if (powerUps[i].type === 'speed') {
-        col = color(0, 255, 0, 200);
-        label = 'V';
-      } else {
-        col = color(255, 0, 255, 200);
-        label = 'X';
-      }
-      push();
-      translate(powerUps[i].x, powerUps[i].y);
-      rotate(powerUps[i].angle);
-      fill(col);
-      let pulse = sin(frameCount * 0.1) * 5;
-      ellipse(0, 0, width * 0.06 + pulse, width * 0.06 + pulse);
-      fill(0);
-      textAlign(CENTER);
-      textSize(width * 0.03);
-      text(label, 0, width * 0.01);
-      pop();
-
-      if (dist(playerX, playerY, powerUps[i].x, powerUps[i].y) < width * 0.06) {
-        if (powerUps[i].type === 'shield') {
-          shieldActive = true;
-          shieldTimer = frameCount + 300;
-        } else if (powerUps[i].type === 'speed') {
-          speedBoostActive = true;
-          speedBoostTimer = frameCount + 200;
-          speed = min(speed * 1.5, 12);
-        } else if (powerUps[i].type === 'score') {
-          scoreBoostActive = true;
-          scoreBoostTimer = frameCount + 400;
+      // Hàm giải mã chuỗi ASCII
+      const deobfuscateAsciiString = (code) => {
+        try {
+          addLog('Decoding ASCII strings...');
+          const decoded = code.replace(/\\(\d{1,3})/g, (match, num) => {
+            const charCode = parseInt(num);
+            if (charCode < 0 || charCode > 255) {
+              throw new Error(`Invalid ASCII code: ${num}`);
+            }
+            return String.fromCharCode(charCode);
+          });
+          addLog('ASCII strings decoded successfully.');
+          return decoded;
+        } catch (e) {
+          addLog(`Error decoding ASCII strings: ${e.message}`);
+          return code;
         }
-        powerUps.splice(i, 1);
-        if ('vibrate' in navigator) navigator.vibrate(50);
-        continue;
-      }
+      };
 
-      if (powerUps[i].y > height + height * 0.06) {
-        powerUps.splice(i, 1);
-      }
+      // Hàm thay thế tên biến vô nghĩa
+      const renameVariables = (code) => {
+        try {
+          addLog('Renaming variables...');
+          const ast = luaparse.parse(code, { locations: true });
+          let variableMap = {};
+          let counter = 0;
+
+          // Duyệt AST để tìm và thay thế tên biến
+          function traverse(node) {
+            if (node.type === 'Identifier' && !['true', 'false', 'nil'].includes(node.name)) {
+              if (!variableMap[node.name]) {
+                variableMap[node.name] = `var${counter++}`;
+              }
+              node.name = variableMap[node.name];
+            }
+            for (let key in node) {
+              if (node[key] && typeof node[key] === 'object') {
+                traverse(node[key]);
+              }
+            }
+          }
+          traverse(ast);
+
+          // Chuyển AST về mã (giả lập, vì luaparse không hỗ trợ trực tiếp)
+          let result = code;
+          for (let oldName in variableMap) {
+            result = result.replace(new RegExp(`\\b${oldName}\\b`, 'g'), variableMap[oldName]);
+          }
+          addLog('Variables renamed successfully.');
+          return result;
+        } catch (e) {
+          addLog(`Error renaming variables: ${e.message}`);
+          return code;
+        }
+      };
+
+      // Hàm xử lý bảng ánh xạ (như bảng p trong mã gốc)
+      const deobfuscateMappingTable = (code) => {
+        try {
+          addLog('Processing mapping table...');
+          const mappingRegex = /local\s+p\s*=\s*\{([^}]+)\}/;
+          const match = code.match(mappingRegex);
+          if (!match) {
+            addLog('No mapping table found.');
+            return code;
+          }
+
+          const mappingTable = match[1];
+          const mappings = {};
+          mappingTable.split(';').forEach((pair) => {
+            const [key, value] = pair.split('=').map(s => s.trim());
+            if (key && value) {
+              mappings[key.replace(/[\[\]]/g, '')] = parseInt(value);
+            }
+          });
+
+          // Thay thế các tham chiếu đến p[key]
+          let result = code;
+          for (let key in mappings) {
+            result = result.replace(new RegExp(`p\\[${JSON.stringify(key)}\\]`, 'g'), mappings[key]);
+            result = result.replace(new RegExp(`p\\.${key}\\b`, 'g'), mappings[key]);
+          }
+          addLog('Mapping table processed successfully.');
+          return result;
+        } catch (e) {
+          addLog(`Error processing mapping table: ${e.message}`);
+          return code;
+        }
+      };
+
+      // Hàm chính để giải mã
+      const deobfuscate = async () => {
+        setError('');
+        setOutputCode('');
+        setLog([]);
+        setLoading(true);
+
+        if (!inputCode.trim()) {
+          setError('Please enter or upload Lua code to deobfuscate.');
+          setLoading(false);
+          return;
+        }
+
+        try {
+          let result = inputCode;
+
+          // Bước 1: Giải mã chuỗi ASCII
+          result = deobfuscateAsciiString(result);
+
+          // Bước 2: Thay thế tên biến vô nghĩa
+          result = renameVariables(result);
+
+          // Bước 3: Xử lý bảng ánh xạ
+          result = deobfuscateMappingTable(result);
+
+          // Bước 4: Kiểm tra cú pháp với Lua.js
+          addLog('Validating Lua syntax...');
+          const lua = new Lua.State();
+          try {
+            lua.execute(result);
+            addLog('Lua code is syntactically valid.');
+          } catch (e) {
+            addLog(`Syntax check failed: ${e.message}`);
+          }
+
+          setOutputCode(result);
+        } catch (e) {
+          setError(`Unexpected error: ${e.message}`);
+          setOutputCode(inputCode);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      // Xử lý tải file
+      const handleFileUpload = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setInputCode(e.target.result);
+          };
+          reader.readAsText(file);
+        }
+      };
+
+      // Tải mã đã giải mã
+      const downloadCode = () => {
+        if (!outputCode) {
+          setError('No deobfuscated code to download.');
+          return;
+        }
+        const blob = new Blob([outputCode], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'deobfuscated.lua';
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      // Tự động tô sáng cú pháp khi outputCode thay đổi
+      React.useEffect(() => {
+        if (outputCode) {
+          Prism.highlightAll();
+        }
+      }, [outputCode]);
+
+      return (
+        <div className="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-md">
+          <h1 className="text-3xl font-bold mb-4 text-center">Advanced Lua Deobfuscator</h1>
+          <p className="text-gray-600 mb-4">Enter or upload your obfuscated Lua code to deobfuscate it. Supports ASCII strings, variable renaming, and mapping tables.</p>
+
+          <div className="mb-4">
+            <textarea
+              className="w-full p-4 border rounded-lg font-mono text-sm"
+              rows="10"
+              placeholder="Paste your obfuscated Lua code here..."
+              value={inputCode}
+              onChange={(e) => setInputCode(e.target.value)}
+            ></textarea>
+          </div>
+
+          <div className="mb-4">
+            <input
+              type="file"
+              accept=".lua,.txt"
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              onChange={handleFileUpload}
+            />
+          </div>
+
+          <div className="flex space-x-4 mb-4">
+            <button
+              className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:bg-blue-300"
+              onClick={deobfuscate}
+              disabled={loading}
+            >
+              {loading ? 'Deobfuscating...' : 'Deobfuscate'}
+            </button>
+            <button
+              className="w-full bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 disabled:bg-green-300"
+              onClick={downloadCode}
+              disabled={!outputCode || loading}
+            >
+              Download Deobfuscated Code
+            </button>
+          </div>
+
+          {error && (
+            <div className="mt-4 p-4 bg-red-100 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+
+          {log.length > 0 && (
+            <div className="mt-4">
+              <h2 className="text-xl font-semibold mb-2">Deobfuscation Log</h2>
+              <pre className="p-4 bg-gray-100 rounded-lg overflow-auto text-sm">
+                {log.join('\n')}
+              </pre>
+            </div>
+          )}
+
+          {outputCode && (
+            <div className="mt-4">
+              <h2 className="text-xl font-semibold mb-2">Deobfuscated Code</h2>
+              <pre className="p-4 bg-gray-100 rounded-lg overflow-auto">
+                <code className="language-lua">{outputCode}</code>
+              </pre>
+            </div>
+          )}
+        </div>
+      );
     }
 
-    if (frameCount % 3 === 0 && particles.length < 40) {
-      particles.push({
-        x: playerX - width * 0.04,
-        y: playerY - height * 0.08,
-        vx: random(-1.5, 1.5),
-        vy: random(-3, -1),
-        life: 80,
-        size: random(width * 0.015, width * 0.025),
-        col: color(255, random(200, 255), 0, 255)
-      });
-    }
-
-    for (let i = particles.length - 1; i >= 0; i--) {
-      let p = particles[i];
-      p.x += p.vx;
-      p.y += p.vy;
-      p.life -= 1;
-      fill(red(p.col), green(p.col), blue(p.col), p.life * 3);
-      noStroke();
-      ellipse(p.x, p.y, p.size, p.size);
-      if (p.life <= 0) {
-        particles.splice(i, 1);
-      }
-    }
-
-    speed = min(5 + score / 1000, 10);
-    score += scoreBoostActive ? 2 : 1;
-
-    if (floor(score / 10) >= 2000) {
-      gameState = 'win';
-      if (floor(score / 10) > highScore) {
-        highScore = floor(score / 10);
-        localStorage.setItem('highScore', highScore);
-      }
-      noLoop();
-    }
-
-    fill(255);
-    textSize(width * 0.04);
-    textAlign(LEFT);
-    textStyle(BOLD);
-    textFont('Arial');
-    text("Score: " + floor(score / 10), width * 0.02, height * 0.06);
-    textAlign(RIGHT);
-    text("High Score: " + highScore, width - width * 0.02, height * 0.06);
-  } else if (gameState === 'gameOver') {
-    document.getElementById('pause-button').style.display = 'none';
-    if (floor(score / 10) > highScore) {
-      highScore = floor(score / 10);
-      localStorage.setItem('highScore', highScore);
-    }
-    drawBackground();
-    fadeAlpha = lerp(fadeAlpha, 200, 0.05);
-    fill(255, 0, 0, fadeAlpha);
-    rect(0, 0, width, height);
-    fill(255, 255 - fadeAlpha / 2);
-    textSize(width * 0.08);
-    textAlign(CENTER);
-    textStyle(BOLD);
-    textFont('Arial');
-    text("Game Over!", width / 2, height / 2 - height * 0.1);
-    textSize(width * 0.05);
-    textStyle(NORMAL);
-    text("Score: " + floor(score / 10), width / 2, height / 2);
-    text("High Score: " + highScore, width / 2, height / 2 + height * 0.06);
-    fill(0, 200, 0, 230 - fadeAlpha / 2);
-    rect(width / 2 - width * 0.12, height / 2 + height * 0.1, width * 0.24, height * 0.08, 10);
-    fill(255, 255 - fadeAlpha / 2);
-    textSize(width * 0.04);
-    text("Play Again", width / 2, height / 2 + height * 0.15);
-    noLoop();
-  } else if (gameState === 'win') {
-    document.getElementById('pause-button').style.display = 'none';
-    drawBackground();
-    fadeAlpha = lerp(fadeAlpha, 200, 0.05);
-    fill(0, 255, 0, fadeAlpha);
-    rect(0, 0, width, height);
-    fill(255, 255 - fadeAlpha / 2);
-    textSize(width * 0.08);
-    textAlign(CENTER);
-    textStyle(BOLD);
-    textFont('Arial');
-    text("Victory!", width / 2, height / 2 - height * 0.1);
-    textSize(width * 0.05);
-    textStyle(NORMAL);
-    text("Score: " + floor(score / 10), width / 2, height / 2);
-    text("High Score: " + highScore, width / 2, height / 2 + height * 0.06);
-    fill(0, 200, 0, 230 - fadeAlpha / 2);
-    rect(width / 2 - width * 0.12, height / 2 + height * 0.1, width * 0.24, height * 0.08, 10);
-    fill(255, 255 - fadeAlpha / 2);
-    textSize(width * 0.04);
-    text("Play Again", width / 2, height / 2 + height * 0.15);
-    noLoop();
-  } else if (gameState === 'paused') {
-    drawBackground();
-    fill(0, 0, 0, 200);
-    rect(0, 0, width, height);
-    fill(255);
-    textSize(width * 0.08);
-    textAlign(CENTER);
-    textStyle(BOLD);
-    textFont('Arial');
-    text("Paused", width / 2, height / 2);
-    document.getElementById('pause-button').style.display = 'block';
-    document.getElementById('pause-button').textContent = 'Resume';
-    noLoop();
-  }
-
-  if (shakeTimer <= 0) {
-    translate(0, 0);
-  }
-}
-
-function drawPowerUpBar(timer, duration, col, yPos) {
-  let progress = (timer - frameCount) / duration;
-  fill(50, 50, 50, 200);
-  rect(width * 0.1, yPos, width * 0.8, height * 0.02, 5);
-  fill(col);
-  rect(width * 0.1, yPos, width * 0.8 * progress, height * 0.02, 5);
-}
-
-function updatePlayerMovement() {
-  if (mouseX >= 0 && mouseX <= width) {
-    let closestLane = lanes.reduce((a, b) => Math.abs(b - mouseX) < Math.abs(a - mouseX) ? b : a);
-    targetLane = closestLane;
-  }
-  if (touches.length > 0) {
-    let touchX = touches[0].x;
-    if (touchX < width / 3) targetLane = lanes[0];
-    else if (touchX < 2 * width / 3) targetLane = lanes[1];
-    else targetLane = lanes[2];
-  }
-}
-
-function keyPressed() {
-  if (gameState === 'playing') {
-    if (keyCode === LEFT_ARROW && laneIndex(playerX) > 0) {
-      targetLane = lanes[laneIndex(playerX) - 1];
-    } else if (keyCode === RIGHT_ARROW && laneIndex(playerX) < 2) {
-      targetLane = lanes[laneIndex(playerX) + 1];
-    } else if (key === ' ') {
-      togglePause();
-    }
-  }
-}
-
-function touchStarted() {
-  if (gameState === 'playing' && touches.length > 0) {
-    let touchX = touches[0].x;
-    if (touchX < width / 3) targetLane = lanes[0];
-    else if (touchX < 2 * width / 3) targetLane = lanes[1];
-    else targetLane = lanes[2];
-  }
-  mousePressed();
-  return false;
-}
-
-function touchMoved() {
-  return false;
-}
-
-function laneIndex(x) {
-  return lanes.indexOf(lanes.reduce((a, b) => Math.abs(b - x) < Math.abs(a - x) ? b : a));
-}
-
-function mousePressed() {
-  if (gameState === 'menu') {
-    let buttonX = width / 2 - width * 0.12;
-    let buttonY = height / 2;
-    if (mouseX > buttonX && mouseX < buttonX + width * 0.24 && mouseY > buttonY && mouseY < buttonY + height * 0.08) {
-      resetGame();
-      gameState = 'playing';
-      fadeAlpha = 255;
-      loop();
-    }
-  } else if (gameState === 'gameOver' || gameState === 'win') {
-    let buttonX = width / 2 - width * 0.12;
-    let buttonY = height / 2 + height * 0.1;
-    if (mouseX > buttonX && mouseX < buttonX + width * 0.24 && mouseY > buttonY && mouseY < buttonY + height * 0.08) {
-      resetGame();
-      gameState = 'playing';
-      fadeAlpha = 255;
-      loop();
-    }
-  }
-}
-
-function togglePause() {
-  if (gameState === 'playing') {
-    gameState = 'paused';
-    document.getElementById('pause-button').textContent = 'Resume';
-  } else if (gameState === 'paused') {
-    gameState = 'playing';
-    document.getElementById('pause-button').textContent = 'Pause';
-    loop();
-  }
-}
-
-function resetGame() {
-  obstacles = [];
-  powerUps = [];
-  particles = [];
-  clouds = [];
-  trees = [];
-  stars = [];
-  score = 0;
-  speed = 5;
-  playerX = lanes[1];
-  targetLane = lanes[1];
-  shieldActive = false;
-  speedBoostActive = false;
-  scoreBoostActive = false;
-  shakeTimer = 0;
-  for (let i = 0; i < 7; i++) {
-    clouds.push({
-      x: random(width),
-      y: random(height * 0.1, height * 0.3),
-      size: random(60, 140),
-      speed: random(0.4, 1.0)
-    });
-  }
-  for (let i = 0; i < 15; i++) {
-    trees.push({
-      x: random(width),
-      y: random(height * 0.4, height * 0.8),
-      size: random(0.8, 1.2)
-    });
-  }
-  for (let i = 0; i < 50; i++) {
-    stars.push({
-      x: random(width),
-      y: random(height * 0.5),
-      size: random(1, 3),
-      alpha: random(100, 255)
-    });
-  }
-}
-
-function drawBackground() {
-  for (let y = 0; y < height * 0.5; y++) {
-    let c = lerpColor(color(10, 20, 80), color(0, 0, 20), y / (height * 0.5));
-    stroke(c);
-    line(0, y, width, y);
-  }
-  fill(34, 139, 34);
-  rect(0, height * 0.5, width, height * 0.5);
-
-  for (let star of stars) {
-    fill(255, 255, 255, star.alpha * (0.8 + 0.2 * sin(frameCount * 0.05)));
-    noStroke();
-    ellipse(star.x, star.y, star.size, star.size);
-  }
-
-  fill(80, 80, 80);
-  triangle(width * 0.15, height * 0.5, width * 0.35, height * 0.25, width * 0.55, height * 0.5);
-  triangle(width * 0.65, height * 0.5, width * 0.85, height * 0.3, width * 1.05, height * 0.5);
-
-  for (let cloud of clouds) {
-    cloud.x -= cloud.speed;
-    if (cloud.x < -cloud.size) cloud.x = width + cloud.size;
-    fill(255, 255, 255, 180);
-    noStroke();
-    ellipse(cloud.x, cloud.y, cloud.size, cloud.size * 0.6);
-    ellipse(cloud.x + cloud.size * 0.3, cloud.y - cloud.size * 0.2, cloud.size * 0.7, cloud.size * 0.5);
-    ellipse(cloud.x - cloud.size * 0.3, cloud.y - cloud.size * 0.1, cloud.size * 0.6, cloud.size * 0.4);
-  }
-
-  for (let tree of trees) {
-    tree.y += speed * 0.5;
-    if (tree.y > height + height * 0.1) tree.y = -height * 0.1;
-    fill(139, 69, 19);
-    rect(tree.x - width * 0.01 * tree.size, tree.y - height * 0.06 * tree.size, width * 0.02 * tree.size, height * 0.06 * tree.size);
-    fill(0, 100, 0);
-    ellipse(tree.x, tree.y - height * 0.08 * tree.size, width * 0.06 * tree.size, width * 0.06 * tree.size);
-    ellipse(tree.x - width * 0.03 * tree.size, tree.y - height * 0.06 * tree.size, width * 0.04 * tree.size, width * 0.04 * tree.size);
-    ellipse(tree.x + width * 0.03 * tree.size, tree.y - height * 0.06 * tree.size, width * 0.04 * tree.size, width * 0.04 * tree.size);
-  }
-}
-
-function drawRails() {
-  for (let lane of lanes) {
-    stroke(80);
-    strokeWeight(width * 0.01);
-    line(lane - width * 0.005, 0, lane - width * 0.005, height);
-    stroke(120);
-    line(lane + width * 0.005, 0, lane + width * 0.005, height);
-    for (let y = bgY; y < height; y += height * 0.05) {
-      fill(139, 69, 19);
-      noStroke();
-      rect(lane - width * 0.05, y - height * 0.01, width * 0.1, height * 0.02);
-      fill(169, 169, 169);
-      ellipse(lane - width * 0.04, y, width * 0.01, width * 0.01);
-      ellipse(lane + width * 0.04, y, width * 0.01, width * 0.01);
-    }
-  }
-  bgY = (bgY + speed) % (height * 0.05);
-}
-
-function drawPlayer() {
-  let bounce = sin(frameCount * 0.2) * 2;
-  let pulse = sin(frameCount * 0.1) * 5;
-  for (let r = width * 0.12 + pulse; r > 0; r -= 4) {
-    fill(255, 215, 0, 10);
-    noStroke();
-    ellipse(playerX, playerY, r, r);
-  }
-  fill(0, 100, 200);
-  rect(playerX - width * 0.05, playerY - height * 0.08 + bounce, width * 0.1, height * 0.16, 10);
-  fill(200, 0, 0);
-  rect(playerX - width * 0.05, playerY - height * 0.08 + bounce, width * 0.1, height * 0.04, 5);
-  fill(255);
-  rect(playerX - width * 0.03, playerY - height * 0.06 + bounce, width * 0.02, height * 0.02);
-  rect(playerX + width * 0.01, playerY - height * 0.06 + bounce, width * 0.02, height * 0.02);
-  fill(0);
-  push();
-  translate(playerX - width * 0.03, playerY + height * 0.06 + bounce);
-  rotate(frameCount * 0.2);
-  ellipse(0, 0, width * 0.04, width * 0.04);
-  pop();
-  push();
-  translate(playerX + width * 0.03, playerY + height * 0.06 + bounce);
-  rotate(frameCount * 0.2);
-  ellipse(0, 0, width * 0.04, width * 0.04);
-  pop();
-}
-
-function drawObstacle(x, y, size) {
-  fill(50);
-  rect(x - size / 2, y - size / 2, size, size, 5);
-  for (let i = -size / 2; i < size / 2; i += 4) {
-    for (let j = -size / 2; j < size / 2; j += 4) {
-      let n = noise(i * 0.05, j * 0.05, frameCount * 0.02) * 50;
-      fill(100 + n, 100 + n, 100 + n, 200);
-      rect(x + i, y + j, 4, 4);
-    }
-  }
-  fill(169, 169, 169);
-  let wheelSize = size * 0.2;
-  push();
-  translate(x - size * 0.3, y - size * 0.3);
-  rotate(frameCount * 0.2);
-  ellipse(0, 0, wheelSize, wheelSize);
-  pop();
-  push();
-  translate(x + size * 0.3, y - size * 0.3);
-  rotate(frameCount * 0.2);
-  ellipse(0, 0, wheelSize, wheelSize);
-  pop();
-  push();
-  translate(x - size * 0.3, y + size * 0.3);
-  rotate(frameCount * 0.2);
-  ellipse(0, 0, wheelSize, wheelSize);
-  pop();
-  push();
-  translate(x + size * 0.3, y + size * 0.3);
-  rotate(frameCount * 0.2);
-  ellipse(0, 0, wheelSize, wheelSize);
-  pop();
-}
-</script>
+    ReactDOM.render(<LuaDeobfuscator />, document.getElementById('root'));
+  </script>
 </body>
 </html>
