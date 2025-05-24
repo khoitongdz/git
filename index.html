@@ -1,272 +1,340 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lua Deobfuscator - Advanced</title>
-  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/babel-standalone@7.22.9/babel.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.3/dist/tailwind.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/lua5.1.js@0.2.0/dist/lua.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/luaparse@0.3.1/luaparse.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-lua.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obfuscate Lua Script</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-lua.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2a4365 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            cursor: none;
+        }
+        .custom-cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #60a5fa;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            transform: translate(-50%, -50%);
+        }
+        .custom-cursor.glow {
+            box-shadow: 0 0 15px rgba(96, 165, 250, 0.7), 0 0 30px rgba(96, 165, 250, 0.4);
+            transform: translate(-50%, -50%) scale(1.5);
+        }
+        .container {
+            background: rgba(17, 24, 39, 0.9);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6);
+            transition: transform 0.5s ease, box-shadow 0.5s ease;
+            animation: fadeIn 1s ease-out;
+        }
+        .container:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .line-numbers {
+            position: relative;
+            display: flex;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            border: 1px solid #4b5563;
+            transition: border-color 0.3s ease;
+            animation: slideIn 0.8s ease-out;
+        }
+        .line-numbers:hover {
+            border-color: #60a5fa;
+            box-shadow: 0 0 15px rgba(96, 165, 250, 0.5);
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .line-numbers-rows {
+            width: 2.5rem;
+            text-align: right;
+            background: #1f2937;
+            color: #9ca3af;
+            padding: 0.75rem 0;
+            border-right: 1px solid #4b5563;
+        }
+        .line-numbers-rows span {
+            display: block;
+            counter-increment: linenumber;
+        }
+        .line-numbers-rows span:before {
+            content: counter(linenumber);
+            padding-right: 0.5rem;
+        }
+        .line-numbers textarea {
+            flex: 1;
+            resize: none;
+            line-height: 1.5rem;
+            padding: 0.75rem;
+            background: #1f2937;
+            color: #f9fafb;
+            border: none;
+            outline: none;
+            font-family: 'Courier New', Courier, monospace;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+        .line-numbers textarea:focus {
+            background: #2d3748;
+            box-shadow: inset 0 0 10px rgba(96, 165, 250, 0.3);
+        }
+        .prism-code {
+            background: #1f2937 !important;
+            padding: 0.75rem !important;
+            border-radius: 0.75rem !important;
+            font-family: 'Courier New', Courier, monospace !important;
+            border: 1px solid #4b5563;
+            transition: border-color 0.3s ease;
+            animation: slideIn 0.8s ease-out;
+        }
+        .prism-code:hover {
+            border-color: #60a5fa;
+        }
+        .result-section {
+            display: none;
+            margin-top: 1.5rem;
+            animation: fadeIn 0.8s ease-out;
+        }
+        .btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            transform: perspective(500px) translateZ(0);
+        }
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.4s ease;
+        }
+        .btn:hover::before {
+            left: 100%;
+        }
+        .btn:hover {
+            transform: perspective(500px) translateZ(15px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+        }
+        .discord-link:hover {
+            color: #93c5fd !important;
+            text-decoration: underline !important;
+            text-shadow: 0 0 10px rgba(96, 165, 250, 0.7);
+        }
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+            border-radius: 5px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #60a5fa, #3b82f6);
+            border-radius: 5px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #93c5fd, #60a5fa);
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            opacity: 0.3;
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
-  <div id="root" class="container mx-auto p-4"></div>
-
-  <script type="text/babel">
-    function LuaDeobfuscator() {
-      const [inputCode, setInputCode] = React.useState('');
-      const [outputCode, setOutputCode] = React.useState('');
-      const [error, setError] = React.useState('');
-      const [log, setLog] = React.useState([]);
-      const [loading, setLoading] = React.useState(false);
-
-      // Hàm thêm log
-      const addLog = (message) => {
-        setLog((prev) => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
-      };
-
-      // Hàm giải mã chuỗi ASCII
-      const deobfuscateAsciiString = (code) => {
-        try {
-          addLog('Decoding ASCII strings...');
-          const decoded = code.replace(/\\(\d{1,3})/g, (match, num) => {
-            const charCode = parseInt(num);
-            if (charCode < 0 || charCode > 255) {
-              throw new Error(`Invalid ASCII code: ${num}`);
-            }
-            return String.fromCharCode(charCode);
-          });
-          addLog('ASCII strings decoded successfully.');
-          return decoded;
-        } catch (e) {
-          addLog(`Error decoding ASCII strings: ${e.message}`);
-          return code;
-        }
-      };
-
-      // Hàm thay thế tên biến vô nghĩa
-      const renameVariables = (code) => {
-        try {
-          addLog('Renaming variables...');
-          const ast = luaparse.parse(code, { locations: true });
-          let variableMap = {};
-          let counter = 0;
-
-          // Duyệt AST để tìm và thay thế tên biến
-          function traverse(node) {
-            if (node.type === 'Identifier' && !['true', 'false', 'nil'].includes(node.name)) {
-              if (!variableMap[node.name]) {
-                variableMap[node.name] = `var${counter++}`;
-              }
-              node.name = variableMap[node.name];
-            }
-            for (let key in node) {
-              if (node[key] && typeof node[key] === 'object') {
-                traverse(node[key]);
-              }
-            }
-          }
-          traverse(ast);
-
-          // Chuyển AST về mã (giả lập, vì luaparse không hỗ trợ trực tiếp)
-          let result = code;
-          for (let oldName in variableMap) {
-            result = result.replace(new RegExp(`\\b${oldName}\\b`, 'g'), variableMap[oldName]);
-          }
-          addLog('Variables renamed successfully.');
-          return result;
-        } catch (e) {
-          addLog(`Error renaming variables: ${e.message}`);
-          return code;
-        }
-      };
-
-      // Hàm xử lý bảng ánh xạ (như bảng p trong mã gốc)
-      const deobfuscateMappingTable = (code) => {
-        try {
-          addLog('Processing mapping table...');
-          const mappingRegex = /local\s+p\s*=\s*\{([^}]+)\}/;
-          const match = code.match(mappingRegex);
-          if (!match) {
-            addLog('No mapping table found.');
-            return code;
-          }
-
-          const mappingTable = match[1];
-          const mappings = {};
-          mappingTable.split(';').forEach((pair) => {
-            const [key, value] = pair.split('=').map(s => s.trim());
-            if (key && value) {
-              mappings[key.replace(/[\[\]]/g, '')] = parseInt(value);
-            }
-          });
-
-          // Thay thế các tham chiếu đến p[key]
-          let result = code;
-          for (let key in mappings) {
-            result = result.replace(new RegExp(`p\\[${JSON.stringify(key)}\\]`, 'g'), mappings[key]);
-            result = result.replace(new RegExp(`p\\.${key}\\b`, 'g'), mappings[key]);
-          }
-          addLog('Mapping table processed successfully.');
-          return result;
-        } catch (e) {
-          addLog(`Error processing mapping table: ${e.message}`);
-          return code;
-        }
-      };
-
-      // Hàm chính để giải mã
-      const deobfuscate = async () => {
-        setError('');
-        setOutputCode('');
-        setLog([]);
-        setLoading(true);
-
-        if (!inputCode.trim()) {
-          setError('Please enter or upload Lua code to deobfuscate.');
-          setLoading(false);
-          return;
-        }
-
-        try {
-          let result = inputCode;
-
-          // Bước 1: Giải mã chuỗi ASCII
-          result = deobfuscateAsciiString(result);
-
-          // Bước 2: Thay thế tên biến vô nghĩa
-          result = renameVariables(result);
-
-          // Bước 3: Xử lý bảng ánh xạ
-          result = deobfuscateMappingTable(result);
-
-          // Bước 4: Kiểm tra cú pháp với Lua.js
-          addLog('Validating Lua syntax...');
-          const lua = new Lua.State();
-          try {
-            lua.execute(result);
-            addLog('Lua code is syntactically valid.');
-          } catch (e) {
-            addLog(`Syntax check failed: ${e.message}`);
-          }
-
-          setOutputCode(result);
-        } catch (e) {
-          setError(`Unexpected error: ${e.message}`);
-          setOutputCode(inputCode);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      // Xử lý tải file
-      const handleFileUpload = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            setInputCode(e.target.result);
-          };
-          reader.readAsText(file);
-        }
-      };
-
-      // Tải mã đã giải mã
-      const downloadCode = () => {
-        if (!outputCode) {
-          setError('No deobfuscated code to download.');
-          return;
-        }
-        const blob = new Blob([outputCode], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'deobfuscated.lua';
-        a.click();
-        URL.revokeObjectURL(url);
-      };
-
-      // Tự động tô sáng cú pháp khi outputCode thay đổi
-      React.useEffect(() => {
-        if (outputCode) {
-          Prism.highlightAll();
-        }
-      }, [outputCode]);
-
-      return (
-        <div className="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-md">
-          <h1 className="text-3xl font-bold mb-4 text-center">Advanced Lua Deobfuscator</h1>
-          <p className="text-gray-600 mb-4">Enter or upload your obfuscated Lua code to deobfuscate it. Supports ASCII strings, variable renaming, and mapping tables.</p>
-
-          <div className="mb-4">
-            <textarea
-              className="w-full p-4 border rounded-lg font-mono text-sm"
-              rows="10"
-              placeholder="Paste your obfuscated Lua code here..."
-              value={inputCode}
-              onChange={(e) => setInputCode(e.target.value)}
-            ></textarea>
-          </div>
-
-          <div className="mb-4">
-            <input
-              type="file"
-              accept=".lua,.txt"
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              onChange={handleFileUpload}
-            />
-          </div>
-
-          <div className="flex space-x-4 mb-4">
-            <button
-              className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:bg-blue-300"
-              onClick={deobfuscate}
-              disabled={loading}
-            >
-              {loading ? 'Deobfuscating...' : 'Deobfuscate'}
-            </button>
-            <button
-              className="w-full bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 disabled:bg-green-300"
-              onClick={downloadCode}
-              disabled={!outputCode || loading}
-            >
-              Download Deobfuscated Code
-            </button>
-          </div>
-
-          {error && (
-            <div className="mt-4 p-4 bg-red-100 text-red-700 rounded">
-              {error}
+<body>
+    <canvas id="particleCanvas"></canvas>
+    <div class="custom-cursor" id="customCursor"></div>
+    <div class="container text-white p-10 w-full max-w-lg">
+        <h1 class="text-4xl font-extrabold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 animate-pulse">Obfuscate Lua Script</h1>
+        <form id="obfuscateForm" class="space-y-6">
+            <div>
+                <label for="lua_script" class="block text-lg font-semibold mb-2 animate-fade-in">Your Lua Script:</label>
+                <p class="text-xs text-gray-400 mb-3 leading-snug animate-fade-in">Script too long? Use <a href="https://pastefy.app" class="text-blue-400 hover:underline">pastefy.app</a> with: <code class="text-gray-300">loadstring(game:HttpGet("https://pastefy.app/raw/yourscriptcode"))</code></p>
+                <div class="line-numbers">
+                    <div class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                    <textarea id="lua_script" name="lua_script" rows="6" class="w-full scrollbar-thin" placeholder="Enter your Lua script here (e.g., print('Hello'))"></textarea>
+                </div>
             </div>
-          )}
-
-          {log.length > 0 && (
-            <div className="mt-4">
-              <h2 className="text-xl font-semibold mb-2">Deobfuscation Log</h2>
-              <pre className="p-4 bg-gray-100 rounded-lg overflow-auto text-sm">
-                {log.join('\n')}
-              </pre>
-            </div>
-          )}
-
-          {outputCode && (
-            <div className="mt-4">
-              <h2 className="text-xl font-semibold mb-2">Deobfuscated Code</h2>
-              <pre className="p-4 bg-gray-100 rounded-lg overflow-auto">
-                <code className="language-lua">{outputCode}</code>
-              </pre>
-            </div>
-          )}
+            <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 rounded-lg btn">Start Protecting Script</button>
+        </form>
+        <div id="resultSection" class="result-section">
+            <label class="block text-lg font-semibold mb-2 animate-fade-in">Obfuscated Script:</label>
+            <pre class="prism-code"><code class="language-lua" id="obfuscated_script"></code></pre>
+            <button id="copyButton" class="w-full bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-bold py-3 mt-3 rounded-lg btn" style="display: none;">Copy to Clipboard</button>
         </div>
-      );
-    }
+        <p class="mt-8 text-center text-lg animate-fade-in">
+            Join our community: <a href="https://discord.gg/2NpBPjM4PF" class="text-blue-400 discord-link">discord.gg/2NpBPjM4PF</a>
+        </p>
+    </div>
 
-    ReactDOM.render(<LuaDeobfuscator />, document.getElementById('root'));
-  </script>
+    <script>
+        // Particle Animation
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const particles = [];
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = Math.random() * 2 - 1;
+                this.speedY = Math.random() * 2 - 1;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.size > 0.2) this.size -= 0.05;
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+            }
+            draw() {
+                ctx.fillStyle = 'rgba(96, 165, 250, 0.5)';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            for (let i = 0; i < 100; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((particle, index) => {
+                particle.update();
+                particle.draw();
+                if (particle.size <= 0.2) {
+                    particles.splice(index, 1);
+                    particles.push(new Particle());
+                }
+            });
+            requestAnimationFrame(animateParticles);
+        }
+
+        initParticles();
+        animateParticles();
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Custom Cursor
+        const cursor = document.getElementById('customCursor');
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+        document.addEventListener('mousedown', () => cursor.classList.add('glow'));
+        document.addEventListener('mouseup', () => cursor.classList.remove('glow'));
+
+        // Form Functionality
+        const textarea = document.getElementById('lua_script');
+        const form = document.getElementById('obfuscateForm');
+        const resultSection = document.getElementById('resultSection');
+        const obfuscatedScript = document.getElementById('obfuscated_script');
+        const copyButton = document.getElementById('copyButton');
+
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            const lines = this.value.split('\n').length;
+            const lineNumbersRows = this.parentElement.querySelector('.line-numbers-rows');
+            lineNumbersRows.innerHTML = Array(lines).fill('<span></span>').join('');
+        });
+
+        textarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 4;
+            }
+        });
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const luaScript = textarea.value.trim();
+
+            if (!luaScript) {
+                alert('Please enter a valid Lua script.');
+                return;
+            }
+
+            fetch(window.location.href, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'lua_script=' + encodeURIComponent(luaScript)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    obfuscatedScript.textContent = data.obfuscatedCode;
+                    Prism.highlightElement(obfuscatedScript);
+                    resultSection.style.display = 'block';
+                    copyButton.style.display = 'block';
+                } else {
+                    obfuscatedScript.textContent = data.error;
+                    Prism.highlightElement(obfuscatedScript);
+                    resultSection.style.display = 'block';
+                    copyButton.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                obfuscatedScript.textContent = 'Error: An unexpected error occurred.';
+                Prism.highlightElement(obfuscatedScript);
+                resultSection.style.display = 'block';
+                copyButton.style.display = 'none';
+            });
+        });
+
+        copyButton.addEventListener('click', function() {
+            const range = document.createRange();
+            range.selectNodeContents(obfuscatedScript);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            document.execCommand('copy');
+            selection.removeAllRanges();
+            alert('Code copied to clipboard!');
+        });
+
+        textarea.dispatchEvent(new Event('input'));
+    </script>
 </body>
 </html>
