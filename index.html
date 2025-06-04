@@ -207,21 +207,6 @@
             });
         }
 
-        function updateHighScoreDisplay() {
-            const highScoreList = document.getElementById('highScores');
-            highScoreList.innerHTML = highScores.length ? '<h3>Top 3</h3>' : '';
-            highScores.slice(0, 3).forEach((entry) => {
-                highScoreList.innerHTML += `<li>${entry.name}: ${entry.score}</li>`;
-            });
-        }
-
-        function saveHighScore() {
-            highScores.push({ name: playerName, score: score });
-            highScores.sort((a, b) => b.score - a.score);
-            highScores = highScores.slice(0, 3);
-            localStorage.setItem('highScores', JSON.stringify(highScores));
-        }
-
         function resetGame() {
             player = { x: width / 2, y: height - 50, size: 25, speed: 6 };
             bullets = [];
