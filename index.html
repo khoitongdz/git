@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Bắn Tàu Vũ Trụ</title>
+    <title>FiFai</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -54,7 +54,7 @@
             color: #00ccff;
             text-shadow: 0 0 10px #00ccff;
         }
-        #gameOver, #winScreen, #pauseScreen, #bossWarning {
+        #gameOver, #winScreen, #pauseScreen, #bossWarning, #upgradeScreen {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -78,6 +78,10 @@
         }
         #bossWarning {
             color: #ffd700;
+        }
+        #upgradeScreen {
+            font-size: 24px;
+            max-width: 400px;
         }
         #pauseScreen {
             max-width: 450px;
@@ -172,7 +176,7 @@
     <div id="shieldStatus" role="status" aria-live="polite">Lá Chắn: 1 lần</div>
     <div id="gameOver" role="alert">Thua Cuộc!<br>Nhấn R để Chơi Lại</div>
     <div id="winScreen" role="alert">Chiến Thắng!<br>Nhấn R để Tiếp Tục</div>
-    <div id="bossWarning" role="alert">Thiên Thần Xuất Hiện!</div>
+    <div id="bossWarning" role="alert">Boss Xuất Hiện!</div>
     <div id="startScreen">
         <h1>Game Bắn Tàu Vũ Trụ</h1>
         <input id="playerNameInput" type="text" placeholder="Nhập tên (3-15 ký tự)" maxlength="15" autofocus tabindex="0" aria-label="Nhập tên người chơi">
@@ -183,6 +187,7 @@
            Đấu với boss <strong>Thiên Thần</strong> tại <strong>19,000 điểm</strong> (1000 điểm).<br>
            Bắn trúng <strong>khối vàng</strong> để tăng cấp siêu đạn (6→12 luồng, cộng dồn 90s).<br>
            Bắn trúng <strong>khối xanh</strong> để thêm 1 lá chắn (cộng dồn).<br>
+           Nhấn <strong>U</strong> để mở menu nâng cấp (Tốc độ, Tốc độ bắn, Lá chắn, Đạn nổ).<br>
            Đạt <strong>20,000 điểm</strong> để chiến thắng!<br>
            Nhấn <strong>R</strong> để chơi lại, <strong>P</strong> để tạm dừng/tiếp tục.</p>
         <button id="startButton" aria-label="Bắt đầu trò chơi">Bắt Đầu Chơi</button>
@@ -191,11 +196,16 @@
         <h2>Trò Chơi Tạm Dừng</h2>
         <button id="resumeButton" aria-label="Tiếp tục trò chơi">Tiếp Tục Chơi</button>
     </div>
+    <div id="upgradeScreen">
+        <h2>Nâng Cấp Tàu</h2>
+        <p id="upgradeOptions"></p>
+        <p>Nhấn 1-4 để chọn, U hoặc Enter để đóng</p>
+    </div>
     <button id="pauseButton" aria-label="Tạm dừng trò chơi" style="display: none;">Tạm Dừng</button>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script>
-        let player, bullets, enemies, score, gameOver, gameWon, gameStarted, particles, stars, powerUp, powerUpActive, powerUpTimer, powerUpLevel, playerName, isPaused, boss, bossWarningTimer, bossCooldown, shield, shieldActive, shieldCount;
+        let player, bullets, enemies, score, gameOver, gameWon, gameStarted, particles, stars, powerUp, powerUpActive, powerUpTimer, powerUpLevel, playerName, isPaused, boss, bossWarningTimer, bossCooldown, shield, shieldActive, shieldCount, showUpgradeMenu, upgrades;
 
         function setup() {
             let canvasSize = min(windowWidth * 0.9, windowHeight * 0.9 * (4/3));
@@ -203,6 +213,7 @@
             resetGame();
             gameStarted = false;
             isPaused = false;
+            showUpgradeMenu = false;
             boss = null;
             bossWarningTimer = 0;
             bossCooldown = 0;
@@ -232,9 +243,10 @@
             shieldGradient = drawingContext.createRadialGradient(0, 0, 6, 0, 0, 20);
             shieldGradient.addColorStop(0, '#00ccff');
             shieldGradient.addColorStop(1, '#0099cc');
-            bossGradient = drawingContext.createRadialGradient(0, 0, 10, 0, 0, 50);
-            bossGradient.addColorStop(0, '#ffffff');
-            bossGradient.addColorStop(1, '#ffeeaa');
+            bossGradient = drawingContext.createRadialGradient(0, 0, 10, 0, 0, 60);
+            bossGradient.addColorStop(0, '#ff5555');
+            bossGradient.addColorStop(0.3, '#ffd700');
+            bossGradient.addColorStop(1, '#ffffff');
             enemyGradients = {
                 small: drawingContext.createRadialGradient(0, 0, 4.5, 0, 0, 15),
                 fast: drawingContext.createRadialGradient(0, 0, 4.5, 0, 0, 15),
@@ -345,10 +357,17 @@
             shield = null;
             shieldActive = false;
             shieldCount = 0;
+            upgrades = {
+                speedLevel: 0,
+                fireRateLevel: 0,
+                shieldLevel: 0,
+                explosiveLevel: 0
+            };
             score = 0;
             gameOver = false;
             gameWon = false;
             isPaused = false;
+            showUpgradeMenu = false;
             boss = null;
             bossWarningTimer = 0;
             bossCooldown = 0;
@@ -362,10 +381,11 @@
             document.getElementById('gameOver').style.display = 'none';
             document.getElementById('winScreen').style.display = 'none';
             document.getElementById('pauseScreen').style.display = 'none';
+            document.getElementById('upgradeScreen').style.display = 'none';
             document.getElementById('bossWarning').style.display = 'none';
             document.getElementById('pauseButton').style.display = gameStarted ? 'block' : 'none';
             document.getElementById('pauseButton').textContent = 'Tạm Dừng';
-            gsap.killTweensOf('#score, #gameOver, #winScreen, #bossWarning, #pauseScreen');
+            gsap.killTweensOf('#score, #gameOver, #winScreen, #bossWarning, #pauseScreen, #upgradeScreen');
         }
 
         function togglePause() {
@@ -384,25 +404,51 @@
             }
         }
 
+        function toggleUpgradeMenu() {
+            if (!gameStarted || gameOver || gameWon || isPaused) return;
+            showUpgradeMenu = !showUpgradeMenu;
+            if (showUpgradeMenu) {
+                noLoop();
+                document.getElementById('upgradeScreen').style.display = 'block';
+                updateUpgradeOptions();
+                gsap.from('#upgradeScreen', { opacity: 0, scale: 0.8, duration: 0.5, ease: 'power3.out' });
+            } else {
+                loop();
+                document.getElementById('upgradeScreen').style.display = 'none';
+                gsap.to('#upgradeScreen', { opacity: 0, scale: 0.8, duration: 0.5, ease: 'power3.in' });
+            }
+        }
+
+        function updateUpgradeOptions() {
+            let options = [
+                `1. Tốc độ (Cấp ${upgrades.speedLevel}/3): ${upgrades.speedLevel < 3 ? (upgrades.speedLevel + 1) * 100 : 'Tối đa'} điểm`,
+                `2. Tốc độ bắn (Cấp ${upgrades.fireRateLevel}/3): ${upgrades.fireRateLevel < 3 ? (upgrades.fireRateLevel + 1) * 150 : 'Tối đa'} điểm`,
+                `3. Lá chắn (Cấp ${upgrades.shieldLevel}/3): ${upgrades.shieldLevel < 3 ? (upgrades.shieldLevel + 1) * 200 : 'Tối đa'} điểm`,
+                `4. Đạn nổ (Cấp ${upgrades.explosiveLevel}/2): ${upgrades.explosiveLevel < 2 ? (upgrades.explosiveLevel + 1) * 300 : 'Tối đa'} điểm`
+            ];
+            document.getElementById('upgradeOptions').innerHTML = options.join('<br>');
+        }
+
         function touchMoved() {
-            if (gameStarted && !gameOver && !gameWon && !isPaused) {
+            if (gameStarted && !gameOver && !gameWon && !isPaused && !showUpgradeMenu && player) {
                 player.targetX = constrain(mouseX, player.size / 2, width - player.size / 2);
             }
             return false;
         }
 
-        function touchStarted(e) {
-            if (!gameStarted) return true;
-            if (gameStarted && !gameOver && !gameWon && !isPaused && bullets.length < 20) {
+        function touchStarted() {
+            if (!gameStarted || !player) return true;
+            if (gameStarted && !gameOver && !gameWon && !isPaused && !showUpgradeMenu && bullets.length < 20) {
                 shootBullets();
             }
             return false;
         }
 
         function shootBullets() {
-            if (bullets.length >= 20) return;
+            if (!player || bullets.length >= 20) return;
+            let fireRate = 6 - upgrades.fireRateLevel; // 6, 5, 4, 3
             if (powerUpActive) {
-                let numStreams = 6 + powerUpLevel * 2; // 6, 8, 10, 12
+                let numStreams = 6 + powerUpLevel * 2;
                 let angleStep = 60 / (numStreams - 1);
                 for (let i = 0; i < numStreams; i++) {
                     let angle = -30 + i * angleStep;
@@ -412,7 +458,9 @@
                         y: player.y - player.size,
                         speedX: Math.sin(rad) * 15,
                         speedY: -Math.cos(rad) * 15,
-                        isPowerBullet: true
+                        isPowerBullet: true,
+                        isExplosive: upgrades.explosiveLevel > 0,
+                        explosionRadius: upgrades.explosiveLevel * 20
                     });
                     particles.push({
                         x: player.x,
@@ -425,7 +473,14 @@
                     });
                 }
             } else {
-                bullets.push({ x: player.x, y: player.y - player.size, speedX: 0, speedY: -12 });
+                bullets.push({
+                    x: player.x,
+                    y: player.y - player.size,
+                    speedX: 0,
+                    speedY: -12,
+                    isExplosive: upgrades.explosiveLevel > 0,
+                    explosionRadius: upgrades.explosiveLevel * 20
+                });
                 particles.push({
                     x: player.x,
                     y: player.y - player.size,
@@ -443,6 +498,7 @@
 
             // Draw stars
             for (let star of stars) {
+                if (!star) continue;
                 fill(255, random(180, 255));
                 noStroke();
                 ellipse(star.x, star.y, star.size * star.layer);
@@ -450,7 +506,7 @@
                 if (star.y > height) star.y = -star.size;
             }
 
-            if (gameStarted && !gameOver && !gameWon && !isPaused) {
+            if (gameStarted && !gameOver && !gameWon && !isPaused && !showUpgradeMenu && player) {
                 // Player movement with smoothing
                 if (keyIsDown(LEFT_ARROW)) player.targetX -= player.speed;
                 if (keyIsDown(RIGHT_ARROW)) player.targetX += player.speed;
@@ -460,23 +516,64 @@
                 player.x += player.velocityX;
                 player.x = constrain(player.x, player.size / 2, width - player.size / 2);
 
-                // Draw player
-                drawingContext.fillStyle = playerGradient;
+                // Update player speed based on upgrades
+                player.speed = 6 + upgrades.speedLevel;
+
+                // Draw player with improved design
+                drawingContext.save();
                 drawingContext.translate(player.x, player.y);
-                stroke(0, 204, 153, 120);
-                strokeWeight(6);
-                triangle(0, -player.size / 2, -player.size / 2, player.size / 2, player.size / 2, player.size / 2);
+                
+                // Glow effect
+                drawingContext.shadowBlur = 15;
+                drawingContext.shadowColor = 'rgba(0, 255, 204, 0.7)';
+                
+                // Main body
+                drawingContext.fillStyle = playerGradient;
+                stroke(0, 204, 153, 200);
+                strokeWeight(3);
+                beginShape();
+                vertex(0, -player.size * 0.8);
+                vertex(-player.size * 0.4, -player.size * 0.2);
+                vertex(-player.size * 0.6, player.size * 0.4);
+                vertex(-player.size * 0.2, player.size * 0.6);
+                vertex(player.size * 0.2, player.size * 0.6);
+                vertex(player.size * 0.6, player.size * 0.4);
+                vertex(player.size * 0.4, -player.size * 0.2);
+                endShape(CLOSE);
+                
+                // Cockpit
+                fill(255, 255, 255, 100);
+                noStroke();
+                ellipse(0, -player.size * 0.3, player.size * 0.3, player.size * 0.2);
+                
+                // Thrusters with flicker effect
+                let flicker = Math.sin(frameCount * 0.3) * 2 + 8;
+                fill(255, 204, 102, 200);
+                noStroke();
+                triangle(
+                    -player.size * 0.15, player.size * 0.6,
+                    player.size * 0.15, player.size * 0.6,
+                    0, player.size * 0.6 + flicker
+                );
+                
+                // Wing details
+                stroke(255, 255, 255, 150);
                 strokeWeight(1);
-                stroke(0);
-                fill(255, 204, 102, 120);
-                triangle(0, player.size / 2, -player.size / 4, player.size * 0.8, player.size / 4, player.size * 0.8);
+                line(-player.size * 0.5, player.size * 0.3, -player.size * 0.3, player.size * 0.5);
+                line(player.size * 0.5, player.size * 0.3, player.size * 0.3, player.size * 0.5);
+                
+                // Reset shadow
+                drawingContext.shadowBlur = 0;
+                
+                // Shield if active
                 if (shieldActive) {
                     noFill();
                     stroke(0, 204, 255, 150);
                     strokeWeight(4);
-                    ellipse(0, 0, player.size * 1.5);
+                    ellipse(0, 0, player.size * 1.6);
                 }
-                drawingContext.translate(-player.x, -player.y);
+                
+                drawingContext.restore();
 
                 // Draw player name
                 textAlign(CENTER);
@@ -489,7 +586,8 @@
                 stroke(0);
 
                 // Shoot bullets
-                if (keyIsDown(32) && frameCount % 6 === 0) {
+                let fireRate = 6 - upgrades.fireRateLevel;
+                if (keyIsDown(32) && frameCount % fireRate === 0) {
                     shootBullets();
                 }
 
@@ -575,28 +673,101 @@
                         boss.shootTimer = 15;
                     }
                     let pulse = Math.sin(frameCount * 0.1) * 10 + boss.size;
-                    drawingContext.fillStyle = bossGradient;
+                    drawingContext.save();
                     drawingContext.translate(boss.x, boss.y);
-                    ellipse(0, 0, pulse, pulse);
-                    stroke(255, 215, 0, 120);
-                    strokeWeight(4);
-                    let wingAngle = Math.sin(frameCount * 0.05) * 10;
-                    beginShape();
-                    vertex(-pulse / 2, 0);
-                    quadraticVertex(-pulse, -pulse / 2, -pulse * 1.5, -pulse * 1.2 + wingAngle);
-                    endShape();
-                    beginShape();
-                    vertex(pulse / 2, 0);
-                    quadraticVertex(pulse, -pulse / 2, pulse * 1.5, -pulse * 1.2 + wingAngle);
-                    endShape();
+                    
+                    // Glow effect
+                    drawingContext.shadowBlur = 30;
+                    drawingContext.shadowColor = 'rgba(255, 215, 0, 0.7)';
+                    
+                    // Energy aura
+                    let auraPulse = Math.sin(frameCount * 0.05) * 10 + pulse * 1.5;
                     noFill();
-                    stroke(255, 255, 255, 150);
+                    stroke(255, 215, 0, 100);
+                    strokeWeight(6);
+                    ellipse(0, 0, auraPulse, auraPulse * 0.8);
+                    
+                    // Main body
+                    drawingContext.fillStyle = bossGradient;
+                    stroke(200, 50, 50, 200);
+                    strokeWeight(5);
+                    beginShape();
+                    for (let i = 0; i < 8; i++) {
+                        let angle = i * TWO_PI / 8 + frameCount * 0.02;
+                        let r = pulse * (i % 2 === 0 ? 0.8 : 0.6);
+                        vertex(cos(angle) * r, sin(angle) * r * 0.7);
+                    }
+                    endShape(CLOSE);
+                    
+                    // Energy core
+                    let corePulse = Math.sin(frameCount * 0.15) * 8 + pulse * 0.4;
+                    let coreGradient = drawingContext.createRadialGradient(0, 0, 5, 0, 0, corePulse);
+                    coreGradient.addColorStop(0, '#ff5555');
+                    coreGradient.addColorStop(1, '#ffffff');
+                    drawingContext.fillStyle = coreGradient;
+                    noStroke();
+                    ellipse(0, 0, corePulse, corePulse);
+                    
+                    // Large wings
+                    let largeWingAngle = Math.sin(frameCount * 0.04) * 15;
+                    stroke(255, 215, 0, 180);
+                    strokeWeight(6);
+                    beginShape();
+                    vertex(-pulse * 0.5, 0);
+                    quadraticVertex(-pulse * 1.5, -pulse * 0.9, -pulse * 2.2, -pulse * 0.4 + largeWingAngle);
+                    endShape();
+                    beginShape();
+                    vertex(pulse * 0.5, 0);
+                    quadraticVertex(pulse * 1.5, -pulse * 0.9, pulse * 2.2, -pulse * 0.4 + largeWingAngle);
+                    endShape();
+                    
+                    // Small wings
+                    let smallWingAngle = Math.sin(frameCount * 0.06) * 10;
+                    stroke(255, 215, 0, 150);
+                    strokeWeight(4);
+                    beginShape();
+                    vertex(-pulse * 0.3, pulse * 0.5);
+                    quadraticVertex(-pulse * 1.0, pulse * 0.2, -pulse * 1.4, pulse * 0.7 + smallWingAngle);
+                    endShape();
+                    beginShape();
+                    vertex(pulse * 0.3, pulse * 0.5);
+                    quadraticVertex(pulse * 1.0, pulse * 0.2, pulse * 1.4, pulse * 0.7 + smallWingAngle);
+                    endShape();
+                    
+                    // Wing details
+                    stroke(255, 255, 255, 120);
                     strokeWeight(2);
-                    ellipse(0, -pulse / 2, pulse * 0.8, pulse * 0.4);
-                    if (frameCount % 5 === 0 && particles.length < 50) {
+                    line(-pulse * 1.8, -pulse * 0.5 + largeWingAngle, -pulse * 1.2, -pulse * 0.3);
+                    line(pulse * 1.8, -pulse * 0.5 + largeWingAngle, pulse * 1.2, -pulse * 0.3);
+                    line(-pulse * 1.2, pulse * 0.6 + smallWingAngle, -pulse * 0.8, pulse * 0.4);
+                    line(pulse * 1.2, pulse * 0.6 + smallWingAngle, pulse * 0.8, pulse * 0.4);
+                    
+                    // Body details
+                    stroke(255, 255, 255, 150);
+                    strokeWeight(3);
+                    line(-pulse * 0.4, -pulse * 0.4, pulse * 0.4, pulse * 0.4);
+                    line(pulse * 0.4, -pulse * 0.4, -pulse * 0.4, pulse * 0.4);
+                    
+                    // Energy thrusters
+                    let thrusterFlicker = Math.sin(frameCount * 0.2) * 5 + pulse * 0.3;
+                    fill(255, 99, 99, 200);
+                    noStroke();
+                    triangle(-pulse * 0.2, pulse * 0.7, pulse * 0.2, pulse * 0.7, 0, pulse * 0.7 + thrusterFlicker);
+                    
+                    // Particle effects
+                    if (frameCount % 3 === 0 && particles.length < 50) {
                         particles.push({
-                            x: boss.x + random(-pulse / 2, pulse / 2),
-                            y: boss.y - pulse / 2,
+                            x: boss.x + random(-pulse * 0.3, pulse * 0.3),
+                            y: boss.y + pulse * 0.7,
+                            vx: random(-1.5, 1.5),
+                            vy: random(2, 4),
+                            size: random(3, 6),
+                            alpha: 255,
+                            color: [255, random(99, 215), random(0, 99)]
+                        });
+                        particles.push({
+                            x: boss.x + random(-pulse * 0.5, pulse * 0.5),
+                            y: boss.y,
                             vx: random(-1, 1),
                             vy: random(-1, 1),
                             size: random(2, 4),
@@ -604,9 +775,11 @@
                             color: [255, 255, 255]
                         });
                     }
+                    
+                    drawingContext.shadowBlur = 0;
                     strokeWeight(1);
                     stroke(0);
-                    drawingContext.translate(-boss.x, -boss.y);
+                    drawingContext.restore();
 
                     // Draw health bar
                     let barWidth = 60;
@@ -625,6 +798,7 @@
                 // Draw and move bullets
                 for (let i = bullets.length - 1; i >= 0; i--) {
                     let bullet = bullets[i];
+                    if (!bullet) continue;
                     bullet.x += bullet.speedX || 0;
                     bullet.y += bullet.speedY;
                     if (bullet.y < -10 || bullet.y > height + 10 || bullet.x < -10 || bullet.x > width + 10) {
@@ -632,10 +806,10 @@
                         continue;
                     }
                     drawingContext.fillStyle = bulletGradient;
-                    stroke(bullet.isBossBullet ? [255, 99, 99, 80] : [255, 255, 204, 80]);
+                    stroke(bullet.isBossBullet ? [255, 99, 99, 80] : bullet.isExplosive ? [255, 99, 0, 80] : [255, 255, 204, 80]);
                     strokeWeight(4);
-                    let bulletSize = bullet.isPowerBullet ? 8 : bullet.isEnemyBullet ? 10 : 5;
-                    ellipse(bullet.x, bullet.y, bulletSize, bullet.isBossBullet ? 16 : bullet.isEnemyBullet ? 10 : bulletSize * 2);
+                    let bulletSize = bullet.isPowerBullet ? 8 : bullet.isEnemyBullet ? 10 : bullet.isExplosive ? 7 : 5;
+                    ellipse(bullet.x, bullet.y, bulletSize, bullet.isBossBullet ? 16 : bullet.isEnemyBullet ? 10 : bullet.isExplosive ? bulletSize * 1.5 : bulletSize * 2);
                     strokeWeight(1);
                     stroke(0);
 
@@ -714,6 +888,7 @@
                 // Draw and move enemies
                 for (let i = enemies.length - 1; i >= 0; i--) {
                     let enemy = enemies[i];
+                    if (!enemy) continue;
                     enemy.y += enemy.speed;
                     if (enemy.type === 'fast' || enemy.type === 'splitChild') {
                         enemy.x += Math.sin(frameCount / enemy.zigZag) * 5;
@@ -745,44 +920,126 @@
                     }
                     let pulse = Math.sin(frameCount * 0.1 + i) * (enemy.type === 'large' || enemy.type === 'armored' || enemy.type === 'shooter' || enemy.type === 'splitter' ? 5 : 3) + enemy.size;
                     if (enemy.type !== 'stealth' || enemy.isVisible) {
-                        drawingContext.fillStyle = enemyGradients[enemy.type];
-                        stroke(enemy.color[0], enemy.color[1], enemy.color[2], 120);
-                        strokeWeight(4);
+                        drawingContext.save();
                         drawingContext.translate(enemy.x, enemy.y);
+                        drawingContext.shadowBlur = 10;
+                        drawingContext.shadowColor = `rgba(${enemy.color[0]}, ${enemy.color[1]}, ${enemy.color[2]}, 0.5)`;
+                        
+                        drawingContext.fillStyle = enemyGradients[enemy.type];
+                        stroke(enemy.color[0], enemy.color[1], enemy.color[2], 150);
+                        strokeWeight(3);
+                        
                         if (enemy.type === 'small') {
-                            rect(-pulse / 2, -pulse / 2, pulse, pulse, 5);
+                            beginShape();
+                            vertex(0, -pulse * 0.6);
+                            vertex(-pulse * 0.4, pulse * 0.4);
+                            vertex(pulse * 0.4, pulse * 0.4);
+                            endShape(CLOSE);
+                            fill(255, 255, 255, 100);
+                            noStroke();
+                            ellipse(0, -pulse * 0.2, pulse * 0.3);
+                            let thrusterFlicker = Math.sin(frameCount * 0.3 + i) * 2 + 4;
+                            fill(255, 204, 102, 150);
+                            triangle(-pulse * 0.15, pulse * 0.4, pulse * 0.15, pulse * 0.4, 0, pulse * 0.4 + thrusterFlicker);
                         } else if (enemy.type === 'fast') {
-                            triangle(0, -pulse / 2, -pulse / 2, pulse / 2, pulse / 2, pulse / 2);
+                            beginShape();
+                            vertex(0, -pulse * 0.7);
+                            vertex(-pulse * 0.5, 0);
+                            vertex(-pulse * 0.3, pulse * 0.5);
+                            vertex(pulse * 0.3, pulse * 0.5);
+                            vertex(pulse * 0.5, 0);
+                            endShape(CLOSE);
+                            noFill();
+                            stroke(255, 255, 255, 100);
+                            strokeWeight(1);
+                            line(-pulse * 0.4, pulse * 0.2, -pulse * 0.2, pulse * 0.4);
+                            line(pulse * 0.4, pulse * 0.2, pulse * 0.2, pulse * 0.4);
                         } else if (enemy.type === 'medium') {
                             ellipse(0, 0, pulse, pulse);
-                        } else if (enemy.type === 'large') {
-                            triangle(0, -pulse / 2, -pulse / 2, pulse / 2, pulse / 2, pulse / 2);
-                        } else if (enemy.type === 'armored') {
-                            rect(-pulse / 2, -pulse / 2, pulse, pulse, 10);
+                            fill(255, 255, 255, 100);
+                            noStroke();
+                            let corePulse = Math.sin(frameCount * 0.2 + i) * 2 + pulse * 0.3;
+                            ellipse(0, 0, corePulse, corePulse);
                             noFill();
+                            stroke(enemy.color[0], enemy.color[1], enemy.color[2], 100);
+                            strokeWeight(2);
+                            ellipse(0, 0, pulse * 0.8, pulse * 0.8);
+                        } else if (enemy.type === 'large') {
+                            beginShape();
+                            vertex(0, -pulse * 0.6);
+                            vertex(-pulse * 0.6, -pulse * 0.2);
+                            vertex(-pulse * 0.7, pulse * 0.4);
+                            vertex(-pulse * 0.3, pulse * 0.6);
+                            vertex(pulse * 0.3, pulse * 0.6);
+                            vertex(pulse * 0.7, pulse * 0.4);
+                            vertex(pulse * 0.6, -pulse * 0.2);
+                            endShape(CLOSE);
+                            stroke(255, 255, 255, 100);
+                            strokeWeight(1);
+                            line(-pulse * 0.5, 0, -pulse * 0.3, pulse * 0.2);
+                            line(pulse * 0.5, 0, pulse * 0.3, pulse * 0.2);
+                        } else if (enemy.type === 'armored') {
+                            rect(-pulse * 0.5, -pulse * 0.5, pulse, pulse, 10);
+                            fill(100, 100, 100, 150);
+                            noStroke();
+                            rect(-pulse * 0.3, -pulse * 0.3, pulse * 0.6, pulse * 0.6, 5);
                             stroke(255, 255, 255, 150);
                             strokeWeight(2);
-                            rect(-pulse / 2 + 2, -pulse / 2 + 2, pulse - 4, pulse - 4, 8);
+                            line(-pulse * 0.4, -pulse * 0.4, pulse * 0.4, pulse * 0.4);
+                            line(-pulse * 0.4, pulse * 0.4, pulse * 0.4, -pulse * 0.4);
                         } else if (enemy.type === 'stealth') {
                             ellipse(0, 0, pulse, pulse);
+                            fill(255, 255, 255, 50);
+                            noStroke();
+                            ellipse(0, 0, pulse * 0.5, pulse * 0.5);
                             noFill();
                             stroke(255, 255, 255, 100);
                             strokeWeight(2);
-                            ellipse(0, 0, pulse * 0.8, pulse * 0.8);
+                            let flickerPulse = Math.sin(frameCount * 0.3 + i) * 2 + pulse * 0.7;
+                            ellipse(0, 0, flickerPulse, flickerPulse);
                         } else if (enemy.type === 'splitter') {
-                            rect(-pulse / 2, -pulse / 2, pulse, pulse, 8);
+                            beginShape();
+                            vertex(-pulse * 0.5, -pulse * 0.5);
+                            vertex(0, -pulse * 0.7);
+                            vertex(pulse * 0.5, -pulse * 0.5);
+                            vertex(pulse * 0.7, 0);
+                            vertex(pulse * 0.5, pulse * 0.5);
+                            vertex(0, pulse * 0.7);
+                            vertex(-pulse * 0.5, pulse * 0.5);
+                            vertex(-pulse * 0.7, 0);
+                            endShape(CLOSE);
+                            fill(255, 255, 255, 100);
+                            noStroke();
+                            ellipse(0, 0, pulse * 0.4);
                         } else if (enemy.type === 'shooter') {
-                            triangle(0, -pulse / 2, -pulse / 2, pulse / 2, pulse / 2, pulse / 2);
-                            noFill();
-                            stroke(255, 99, 99, 150);
-                            strokeWeight(2);
-                            ellipse(0, 0, pulse * 0.6, pulse * 0.6);
+                            beginShape();
+                            vertex(0, -pulse * 0.7);
+                            vertex(-pulse * 0.6, -pulse * 0.2);
+                            vertex(-pulse * 0.7, pulse * 0.4);
+                            vertex(0, pulse * 0.6);
+                            vertex(pulse * 0.7, pulse * 0.4);
+                            vertex(pulse * 0.6, -pulse * 0.2);
+                            endShape(CLOSE);
+                            fill(255, 99, 99, 150);
+                            noStroke();
+                            ellipse(0, pulse * 0.2, pulse * 0.3);
+                            stroke(255, 255, 255, 100);
+                            strokeWeight(1);
+                            line(-pulse * 0.5, -pulse * 0.3, pulse * 0.5, -pulse * 0.3);
                         } else if (enemy.type === 'splitChild') {
                             ellipse(0, 0, pulse, pulse);
+                            fill(255, 255, 255, 100);
+                            noStroke();
+                            ellipse(0, 0, pulse * 0.5);
+                            let thrusterFlicker = Math.sin(frameCount * 0.3 + i) * 1 + 3;
+                            fill(255, 204, 102, 150);
+                            triangle(-pulse * 0.2, pulse * 0.5, pulse * 0.2, pulse * 0.5, 0, pulse * 0.5 + thrusterFlicker);
                         }
+                        
+                        drawingContext.shadowBlur = 0;
                         strokeWeight(1);
                         stroke(0);
-                        drawingContext.translate(-enemy.x, -enemy.y);
+                        drawingContext.restore();
                     }
 
                     // Check collision with player
@@ -814,52 +1071,114 @@
                     // Check collision with bullets
                     for (let j = bullets.length - 1; j >= 0; j--) {
                         let bullet = bullets[j];
-                        if (bullet.isBossBullet || bullet.isEnemyBullet) continue;
+                        if (!bullet || bullet.isBossBullet || bullet.isEnemyBullet) continue;
                         if ((enemy.type !== 'stealth' || enemy.isVisible) && dist(enemy.x, enemy.y, bullet.x, bullet.y) < pulse / 2 + 7.5) {
-                            enemy.health -= bullet.isPowerBullet ? 2 : 1;
-                            bullets.splice(j, 1);
-                            let particleColor = enemy.type === 'stealth' ? [255, 255, 255] : enemy.type === 'splitter' || enemy.type === 'splitChild' ? [255, 204, 0] : enemy.type === 'shooter' ? [200, 0, 0] : [255, 255, 204];
-                            for (let k = 0; k < 8 && particles.length < 50; k++) {
-                                particles.push({
-                                    x: bullet.x,
-                                    y: bullet.y,
-                                    vx: random(-2, 2),
-                                    vy: random(-2, 2),
-                                    size: random(2, 5),
-                                    alpha: 200,
-                                    color: particleColor
-                                });
-                            }
-                            if (enemy.health <= 0) {
-                                if (enemy.type === 'splitter' && enemies.length <= 13) {
-                                    enemies.push({
-                                        x: enemy.x - 15,
-                                        y: enemy.y,
-                                        size: 15,
-                                        speed: 6,
-                                        type: 'splitChild',
-                                        points: 10,
-                                        color: [255, 204, 0],
-                                        health: 1,
-                                        zigZag: random(50, 100)
-                                    });
-                                    enemies.push({
-                                        x: enemy.x + 15,
-                                        y: enemy.y,
-                                        size: 15,
-                                        speed: 6,
-                                        type: 'splitChild',
-                                        points: 10,
-                                        color: [255, 204, 0],
-                                        health: 1,
-                                        zigZag: random(50, 100)
+                            if (bullet.isExplosive) {
+                                // Collect enemies to remove to avoid index issues
+                                let enemiesToRemove = [];
+                                for (let k = 0; k < enemies.length; k++) {
+                                    let nearbyEnemy = enemies[k];
+                                    if (!nearbyEnemy) continue;
+                                    if ((nearbyEnemy.type !== 'stealth' || nearbyEnemy.isVisible) && dist(bullet.x, bullet.y, nearbyEnemy.x, nearbyEnemy.y) < bullet.explosionRadius) {
+                                        nearbyEnemy.health -= bullet.isPowerBullet ? 4 : 2;
+                                        if (nearbyEnemy.health <= 0) {
+                                            enemiesToRemove.push(k);
+                                            score += nearbyEnemy.points;
+                                            document.getElementById('score').textContent = `Điểm: ${score}`;
+                                            document.getElementById('score').classList.add('update');
+                                            setTimeout(() => document.getElementById('score').classList.remove('update'), 300);
+                                        }
+                                    }
+                                }
+                                // Remove enemies in reverse order to avoid index issues
+                                enemiesToRemove.sort((a, b) => b - a);
+                                for (let k of enemiesToRemove) {
+                                    let nearbyEnemy = enemies[k];
+                                    if (nearbyEnemy.type === 'splitter' && enemies.length <= 13) {
+                                        enemies.push({
+                                            x: nearbyEnemy.x - 15,
+                                            y: nearbyEnemy.y,
+                                            size: 15,
+                                            speed: 6,
+                                            type: 'splitChild',
+                                            points: 10,
+                                            color: [255, 204, 0],
+                                            health: 1,
+                                            zigZag: random(50, 100)
+                                        });
+                                        enemies.push({
+                                            x: nearbyEnemy.x + 15,
+                                            y: nearbyEnemy.y,
+                                            size: 15,
+                                            speed: 6,
+                                            type: 'splitChild',
+                                            points: 10,
+                                            color: [255, 204, 0],
+                                            health: 1,
+                                            zigZag: random(50, 100)
+                                        });
+                                    }
+                                    enemies.splice(k, 1);
+                                }
+                                // Explosion effect
+                                for (let k = 0; k < 12 && particles.length < 50; k++) {
+                                    particles.push({
+                                        x: bullet.x,
+                                        y: bullet.y,
+                                        vx: random(-3, 3),
+                                        vy: random(-3, 3),
+                                        size: random(3, 7),
+                                        alpha: 255,
+                                        color: [255, 99, 0]
                                     });
                                 }
-                                enemies.splice(i, 1);
-                                score += enemy.points;
-                                document.getElementById('score').textContent = `Điểm: ${score}`;
-                                document.getElementById('score').classList.add('update');
-                                setTimeout(() => document.getElementById('score').classList.remove('update'), 300);
+                                bullets.splice(j, 1);
+                            } else {
+                                enemy.health -= bullet.isPowerBullet ? 2 : 1;
+                                bullets.splice(j, 1);
+                                let particleColor = enemy.type === 'stealth' ? [255, 255, 255] : enemy.type === 'splitter' || enemy.type === 'splitChild' ? [255, 204, 0] : enemy.type === 'shooter' ? [200, 0, 0] : [255, 255, 204];
+                                for (let k = 0; k < 8 && particles.length < 50; k++) {
+                                    particles.push({
+                                        x: bullet.x,
+                                        y: bullet.y,
+                                        vx: random(-2, 2),
+                                        vy: random(-2, 2),
+                                        size: random(2, 5),
+                                        alpha: 200,
+                                        color: particleColor
+                                    });
+                                }
+                                if (enemy.health <= 0) {
+                                    if (enemy.type === 'splitter' && enemies.length <= 13) {
+                                        enemies.push({
+                                            x: enemy.x - 15,
+                                            y: enemy.y,
+                                            size: 15,
+                                            speed: 6,
+                                            type: 'splitChild',
+                                            points: 10,
+                                            color: [255, 204, 0],
+                                            health: 1,
+                                            zigZag: random(50, 100)
+                                        });
+                                        enemies.push({
+                                            x: enemy.x + 15,
+                                            y: enemy.y,
+                                            size: 15,
+                                            speed: 6,
+                                            type: 'splitChild',
+                                            points: 10,
+                                            color: [255, 204, 0],
+                                            health: 1,
+                                            zigZag: random(50, 100)
+                                        });
+                                    }
+                                    enemies.splice(i, 1);
+                                    score += enemy.points;
+                                    document.getElementById('score').textContent = `Điểm: ${score}`;
+                                    document.getElementById('score').classList.add('update');
+                                    setTimeout(() => document.getElementById('score').classList.remove('update'), 300);
+                                }
                             }
                             break;
                         }
@@ -870,20 +1189,36 @@
                 if (boss) {
                     for (let j = bullets.length - 1; j >= 0; j--) {
                         let bullet = bullets[j];
-                        if (bullet.isBossBullet || bullet.isEnemyBullet) continue;
+                        if (!bullet || bullet.isBossBullet || bullet.isEnemyBullet) continue;
                         if (dist(boss.x, boss.y, bullet.x, bullet.y) < boss.size / 2 + 7.5) {
-                            boss.health -= bullet.isPowerBullet ? 20 : 10;
-                            bullets.splice(j, 1);
-                            for (let k = 0; k < 8 && particles.length < 50; k++) {
-                                particles.push({
-                                    x: bullet.x,
-                                    y: bullet.y,
-                                    vx: random(-2, 2),
-                                    vy: random(-2, 2),
-                                    size: random(2, 5),
-                                    alpha: 200,
-                                    color: [255, 255, 255]
-                                });
+                            if (bullet.isExplosive) {
+                                boss.health -= bullet.isPowerBullet ? 40 : 20;
+                                for (let k = 0; k < 12 && particles.length < 50; k++) {
+                                    particles.push({
+                                        x: bullet.x,
+                                        y: bullet.y,
+                                        vx: random(-3, 3),
+                                        vy: random(-3, 3),
+                                        size: random(3, 7),
+                                        alpha: 255,
+                                        color: [255, 99, 0]
+                                    });
+                                }
+                                bullets.splice(j, 1);
+                            } else {
+                                boss.health -= bullet.isPowerBullet ? 20 : 10;
+                                bullets.splice(j, 1);
+                                for (let k = 0; k < 8 && particles.length < 50; k++) {
+                                    particles.push({
+                                        x: bullet.x,
+                                        y: bullet.y,
+                                        vx: random(-2, 2),
+                                        vy: random(-2, 2),
+                                        size: random(2, 5),
+                                        alpha: 200,
+                                        color: [255, 255, 255]
+                                    });
+                                }
                             }
                             if (boss.health <= 0) {
                                 score += boss.points;
@@ -930,7 +1265,7 @@
                         for (let j = bullets.length - 1; j >= 0; j--) {
                             if (!powerUp) break;
                             let bullet = bullets[j];
-                            if (bullet.isBossBullet || bullet.isEnemyBullet) continue;
+                            if (!bullet || bullet.isBossBullet || bullet.isEnemyBullet) continue;
                             if (dist(powerUp.x, powerUp.y, bullet.x, bullet.y) < pulse / 2 + 7.5) {
                                 powerUp = null;
                                 bullets.splice(j, 1);
@@ -973,7 +1308,7 @@
                         for (let j = bullets.length - 1; j >= 0; j--) {
                             if (!shield) break;
                             let bullet = bullets[j];
-                            if (bullet.isBossBullet || bullet.isEnemyBullet) continue;
+                            if (!bullet || bullet.isBossBullet || bullet.isEnemyBullet) continue;
                             if (dist(shield.x, shield.y, bullet.x, bullet.y) < pulse / 2 + 7.5) {
                                 shield = null;
                                 bullets.splice(j, 1);
@@ -1000,6 +1335,7 @@
                 // Draw particles
                 for (let i = particles.length - 1; i >= 0; i--) {
                     let particle = particles[i];
+                    if (!particle) continue;
                     particle.x += particle.vx;
                     particle.y += particle.vy;
                     particle.alpha -= 6;
@@ -1034,17 +1370,49 @@
                         loop();
                     }
                 });
-            } else if (key === 'p' && gameStarted && !gameOver && !gameWon) {
+            } else if (key === 'p' && gameStarted && !gameOver && !gameWon && !showUpgradeMenu) {
                 togglePause();
+            } else if (key === 'u' && gameStarted && !gameOver && !gameWon && !isPaused) {
+                toggleUpgradeMenu();
+            } else if (showUpgradeMenu) {
+                if (key === '1' && upgrades.speedLevel < 3) {
+                    let cost = (upgrades.speedLevel + 1) * 100;
+                    if (score >= cost) {
+                        score -= cost;
+                        upgrades.speedLevel++;
+                        document.getElementById('score').textContent = `Điểm: ${score}`;
+                        updateUpgradeOptions();
+                    }
+                } else if (key === '2' && upgrades.fireRateLevel < 3) {
+                    let cost = (upgrades.fireRateLevel + 1) * 150;
+                    if (score >= cost) {
+                        score -= cost;
+                        upgrades.fireRateLevel++;
+                        document.getElementById('score').textContent = `Điểm: ${score}`;
+                        updateUpgradeOptions();
+                    }
+                } else if (key === '3' && upgrades.shieldLevel < 3) {
+                    let cost = (upgrades.shieldLevel + 1) * 200;
+                    if (score >= cost) {
+                        score -= cost;
+                        upgrades.shieldLevel++;
+                        shieldCount++;
+                        shieldActive = true;
+                        document.getElementById('score').textContent = `Điểm: ${score}`;
+                        updateUpgradeOptions();
+                    }
+                } else if (key === '4' && upgrades.explosiveLevel < 2) {
+                    let cost = (upgrades.explosiveLevel + 1) * 300;
+                    if (score >= cost) {
+                        score -= cost;
+                        upgrades.explosiveLevel++;
+                        document.getElementById('score').textContent = `Điểm: ${score}`;
+                        updateUpgradeOptions();
+                    }
+                } else if (key === 'u' || key === 'Enter') {
+                    toggleUpgradeMenu();
+                }
             }
-        }
-
-        function windowResized() {
-            let canvasSize = min(windowWidth * 0.9, windowHeight * 0.9 * (4/3));
-            resizeCanvas(canvasSize, canvasSize * (3/4));
-            player.x = constrain(player.x, player.size / 2, width - player.size / 2);
-            player.y = height - 50;
-            player.targetX = player.x;
         }
     </script>
 </body>
