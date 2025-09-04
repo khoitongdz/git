@@ -12,7 +12,7 @@
             background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
             color: #e2e8f0;
             overflow-x: hidden;
-            user-select: none; /* Ngăn chọn văn bản */
+            user-select: none;
         }
         .btn {
             transition: transform 0.2s, background-color 0.3s, box-shadow 0.3s;
@@ -71,6 +71,19 @@
             background-color: #374151;
             transform: translateX(5px);
         }
+        .email-content {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #fff;
+            border-radius: 8px;
+            transition: transform 0.3s, opacity 0.3s;
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        .email-content.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
         .loading-spinner {
             border: 4px solid #f3f3f3;
             border-top: 4px solid #3b82f6;
@@ -86,7 +99,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.95);
             display: none;
             justify-content: center;
             align-items: center;
@@ -94,6 +107,12 @@
         }
         #devtools-blocker.show {
             display: flex;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #fff;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -187,6 +206,13 @@
             return Array(length).fill().map(() => chars[Math.floor(Math.random() * chars.length)]).join('');
         }
 
+        // Làm sạch HTML để loại bỏ các thẻ nguy hiểm
+        function sanitizeHTML(html) {
+            return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                       .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+                       .replace(/on\w+="[^"]*"/gi, '');
+        }
+
         // Chặn phím F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U, Ctrl+S
         document.addEventListener('keydown', (e) => {
             if (
@@ -205,43 +231,65 @@
             showToast('🚫 Click chuột phải bị chặn!');
         });
 
-        // Phát hiện DevTools và khóa thao tác
-        function detectDevTools() {
+        // Phát hiện DevTools chính xác hơn (không dựa vào kích thước cửa sổ)
+        (function() {
             let devtoolsOpen = false;
-            const threshold = 160; // Độ chênh lệch kích thước cửa sổ khi DevTools mở
-            const check = () => {
-                if (
-                    window.outerWidth - window.innerWidth > threshold ||
-                    window.outerHeight - window.innerHeight > threshold ||
-                    (window.console && console.log.toString().includes('native code') === false)
-                ) {
-                    devtoolsOpen = true;
-                    document.getElementById('devtools-blocker').classList.add('show');
-                    // Vô hiệu hóa mọi tương tác
-                    document.body.style.pointerEvents = 'none';
-                    document.body.style.userSelect = 'none';
-                    // Chặn các sự kiện chuột và bàn phím
-                    document.addEventListener('click', blockInteraction);
-                    document.addEventListener('keydown', blockInteraction);
-                    document.addEventListener('keypress', blockInteraction);
-                    showToast('🚫 DevTools đang mở! Vui lòng đóng để tiếp tục.');
-                } else if (devtoolsOpen) {
-                    devtoolsOpen = false;
-                    document.getElementById('devtools-blocker').classList.remove('show');
-                    document.body.style.pointerEvents = 'auto';
-                    document.body.style.userSelect = 'none';
-                    document.removeEventListener('click', blockInteraction);
-                    document.removeEventListener('keydown', blockInteraction);
-                    document.removeEventListener('keypress', blockInteraction);
-                }
-            };
-            setInterval(check, 1000);
-        }
+            const blocker = document.getElementById('devtools-blocker');
+            const debuggerThreshold = 100; // Thời gian chạy debugger (ms)
 
-        function blockInteraction(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+            // Bảo vệ hàm detectDevTools
+            Object.defineProperty(window, 'detectDevTools', {
+                value: function() {
+                    // Kiểm tra debugger bằng thời gian chạy
+                    let debuggerDetected = false;
+                    const start = performance.now();
+                    let i = 0;
+                    while (i < 100000) i++;
+                    if (performance.now() - start > debuggerThreshold) {
+                        debuggerDetected = true;
+                    }
+
+                    // Kiểm tra console
+                    const consoleCheck = !/function/.test(console.log.toString()) ||
+                        console.log.toString().includes('native code') === false;
+
+                    // Kiểm tra RegExp (DevTools thay đổi hành vi toString)
+                    const regex = /./;
+                    const regexCheck = regex.toString().length > 100; // DevTools làm toString dài hơn
+
+                    if (debuggerDetected || consoleCheck || regexCheck) {
+                        if (!devtoolsOpen) {
+                            devtoolsOpen = true;
+                            blocker.classList.add('show');
+                            document.body.style.pointerEvents = 'none';
+                            document.body.style.userSelect = 'none';
+                            document.addEventListener('click', blockInteraction);
+                            document.addEventListener('keydown', blockInteraction);
+                            document.addEventListener('keypress', blockInteraction);
+                            showToast('🚫 DevTools đang mở! Vui lòng đóng để tiếp tục.');
+                        }
+                    } else if (devtoolsOpen) {
+                        devtoolsOpen = false;
+                        blocker.classList.remove('show');
+                        document.body.style.pointerEvents = 'auto';
+                        document.body.style.userSelect = 'none';
+                        document.removeEventListener('click', blockInteraction);
+                        document.removeEventListener('keydown', blockInteraction);
+                        document.removeEventListener('keypress', blockInteraction);
+                    }
+                },
+                writable: false,
+                configurable: false
+            });
+
+            function blockInteraction(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            // Kiểm tra liên tục mỗi 300ms
+            setInterval(() => window.detectDevTools(), 300);
+        })();
 
         function showToast(message) {
             const toast = document.getElementById('toast');
@@ -273,7 +321,6 @@
                     if (confirm('Xác nhận tạo email mới? Email hiện tại sẽ bị xóa.')) this.newEmail();
                 });
                 this.newEmail();
-                detectDevTools(); // Bắt đầu phát hiện DevTools
             }
 
             showToast(message) {
@@ -508,11 +555,12 @@
                 let newMailFound = false;
 
                 for (const [mid, sender, subject, msg, date] of mails) {
-                    const bodyText = msg.text || msg.body || msg.mail_excerpt || 'No content available';
+                    const bodyHTML = (msg.html || msg.text || msg.body || msg.mail_excerpt || 'No content available').replace(/\n/g, '<br>');
+                    const sanitizedHTML = sanitizeHTML(bodyHTML);
                     const emailDiv = document.createElement('div');
                     emailDiv.className = 'email-row bg-gray-700 rounded-lg p-4';
                     emailDiv.innerHTML = `
-                        <div class="flex justify-between items-center cursor-pointer" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                        <div class="flex justify-between items-center cursor-pointer" onclick="this.nextElementSibling.classList.toggle('show'); this.nextElementSibling.classList.toggle('hidden');">
                             <div>
                                 <p class="font-semibold text-white">👤 ${sender}</p>
                                 <p class="text-gray-300">📌 ${subject || 'No subject'}</p>
@@ -520,8 +568,8 @@
                             </div>
                             <span class="text-gray-400">▼</span>
                         </div>
-                        <div class="mt-3 text-gray-200 hidden">
-                            <p>📝 ${bodyText.replace(/\n/g, '<br>')}</p>
+                        <div class="email-content mt-3 hidden">
+                            <iframe sandbox="allow-same-origin" srcdoc="${sanitizedHTML.replace(/"/g, '&quot;')}"></iframe>
                             ${this.provider === 'mailtm' ? `<button class="btn bg-red-500 text-white px-4 py-2 mt-3 rounded-lg hover:bg-red-600" onclick="app.deleteMailtm('${mid}')">🗑️ Delete</button>` : ''}
                         </div>
                     `;
