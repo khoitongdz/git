@@ -13,7 +13,6 @@
             background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
             color: #e2e8f0;
             overflow-x: hidden;
-            user-select: none;
         }
         .btn {
             transition: transform 0.2s, background-color 0.3s, box-shadow 0.3s;
@@ -73,17 +72,14 @@
             transform: translateX(5px);
         }
         .email-content {
-            max-height: 300px;
+            display: none;
+            max-height: 500px;
             overflow-y: auto;
             background: #fff;
             border-radius: 8px;
-            transition: transform 0.3s, opacity 0.3s;
-            transform: translateY(20px);
-            opacity: 0;
         }
         .email-content.show {
-            transform: translateY(0);
-            opacity: 1;
+            display: block;
         }
         .loading-spinner {
             border: 4px solid #f3f3f3;
@@ -94,24 +90,9 @@
             animation: spin 1s linear infinite;
             display: inline-block;
         }
-        #devtools-blocker {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        }
-        #devtools-blocker.show {
-            display: flex;
-        }
         iframe {
             width: 100%;
-            height: 100%;
+            min-height: 300px;
             border: none;
             background: #fff;
         }
@@ -142,12 +123,6 @@
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center">
-    <!-- DevTools Blocker -->
-    <div id="devtools-blocker">
-        <div class="text-center text-white text-2xl font-bold">
-            🚫 Vui lòng đóng DevTools để tiếp tục sử dụng trang web!
-        </div>
-    </div>
 
     <!-- Header -->
     <header class="w-full bg-gray-900 bg-opacity-90 backdrop-blur-sm py-4 shadow-lg">
@@ -207,90 +182,27 @@
             return Array(length).fill().map(() => chars[Math.floor(Math.random() * chars.length)]).join('');
         }
 
-        // Làm sạch HTML để loại bỏ các thẻ nguy hiểm
+        // Làm sạch HTML để loại bỏ các thẻ nguy hiểm (cải thiện để loại bỏ thêm các thuộc tính nguy hiểm)
         function sanitizeHTML(html) {
-            return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-                       .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-                       .replace(/on\w+="[^"]*"/gi, '');
+            const dangerousAttrs = /on\w+="[^"]*"/gi; // Xóa các sự kiện on*
+            const scripts = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
+            const iframes = /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi;
+            const styles = /<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi; // Xóa style để tránh CSS injection
+            const links = /<link\b[^<]*(?:(?!<\/link>)<[^<]*)*<\/link>/gi; // Xóa link
+            let clean = html.replace(scripts, '')
+                            .replace(iframes, '')
+                            .replace(styles, '')
+                            .replace(links, '')
+                            .replace(dangerousAttrs, '')
+                            .replace(/javascript:/gi, ''); // Xóa javascript: links
+            // Sử dụng DOMParser để làm sạch thêm nếu có thể
+            if (typeof DOMParser !== 'undefined') {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(clean, 'text/html');
+                return doc.body.innerHTML;
+            }
+            return clean;
         }
-
-        // Chặn phím F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U, Ctrl+S
-        document.addEventListener('keydown', (e) => {
-            if (
-                e.key === 'F12' ||
-                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
-                (e.ctrlKey && (e.key === 'u' || e.key === 'U' || e.key === 's' || e.key === 'S'))
-            ) {
-                e.preventDefault();
-                showToast('🚫 Phím tắt này bị chặn!');
-            }
-        });
-
-        // Chặn context menu (click chuột phải)
-        document.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            showToast('🚫 Click chuột phải bị chặn!');
-        });
-
-        // Phát hiện DevTools (không dựa vào kích thước cửa sổ)
-        (function() {
-            let devtoolsOpen = false;
-            const blocker = document.getElementById('devtools-blocker');
-            const debuggerThreshold = 100; // Thời gian chạy debugger (ms)
-
-            // Bảo vệ hàm detectDevTools
-            Object.defineProperty(window, 'detectDevTools', {
-                value: function() {
-                    // Kiểm tra debugger bằng thời gian chạy
-                    let debuggerDetected = false;
-                    const start = performance.now();
-                    let i = 0;
-                    while (i < 100000) i++;
-                    if (performance.now() - start > debuggerThreshold) {
-                        debuggerDetected = true;
-                    }
-
-                    // Kiểm tra console
-                    const consoleCheck = !/function/.test(console.log.toString()) ||
-                        console.log.toString().includes('native code') === false;
-
-                    // Kiểm tra RegExp (DevTools thay đổi hành vi toString)
-                    const regex = /./;
-                    const regexCheck = regex.toString().length > 100;
-
-                    if (debuggerDetected || consoleCheck || regexCheck) {
-                        if (!devtoolsOpen) {
-                            devtoolsOpen = true;
-                            blocker.classList.add('show');
-                            document.body.style.pointerEvents = 'none';
-                            document.body.style.userSelect = 'none';
-                            document.addEventListener('click', blockInteraction);
-                            document.addEventListener('keydown', blockInteraction);
-                            document.addEventListener('keypress', blockInteraction);
-                            showToast('🚫 DevTools đang mở! Vui lòng đóng để tiếp tục.');
-                        }
-                    } else if (devtoolsOpen) {
-                        devtoolsOpen = false;
-                        blocker.classList.remove('show');
-                        document.body.style.pointerEvents = 'auto';
-                        document.body.style.userSelect = 'none';
-                        document.removeEventListener('click', blockInteraction);
-                        document.removeEventListener('keydown', blockInteraction);
-                        document.removeEventListener('keypress', blockInteraction);
-                    }
-                },
-                writable: false,
-                configurable: false
-            });
-
-            function blockInteraction(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            // Kiểm tra liên tục mỗi 200ms
-            setInterval(() => window.detectDevTools(), 200);
-        })();
 
         function showToast(message) {
             const toast = document.getElementById('toast');
@@ -381,29 +293,33 @@
             async createMailtm() {
                 try {
                     const domainsRes = await fetch(`${MAILTM_BASE}/domains`);
+                    if (!domainsRes.ok) return null;
                     const domains = (await domainsRes.json())['hydra:member'];
+                    if (!domains || !domains.length) return null;
                     const domain = domains[0].domain;
                     const username = genUsername();
                     const address = `${username}@${domain}`;
                     const password = genPassword();
 
                     const data = { address, password };
-                    await fetch(`${MAILTM_BASE}/accounts`, {
+                    const createRes = await fetch(`${MAILTM_BASE}/accounts`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(data)
                     });
+                    if (!createRes.ok) return null;
 
                     const tokenRes = await fetch(`${MAILTM_BASE}/token`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(data)
                     });
+                    if (!tokenRes.ok) return null;
                     const tokenData = await tokenRes.json();
                     if (!tokenData.token) return null;
                     return { provider: 'mailtm', address, password, token: tokenData.token };
                 } catch (e) {
-                    console.error(e);
+                    console.error('Error creating Mail.tm account:', e);
                     return null;
                 }
             }
@@ -411,11 +327,14 @@
             async create1sec() {
                 try {
                     const res = await fetch(`${SECMAIL_BASE}?action=genRandomMailbox&count=1`);
-                    const [address] = await res.json();
+                    if (!res.ok) return null;
+                    const addresses = await res.json();
+                    if (!addresses || !addresses.length) return null;
+                    const address = addresses[0];
                     const [username, domain] = address.split('@');
                     return { provider: '1sec', address, username, domain };
                 } catch (e) {
-                    console.error(e);
+                    console.error('Error creating 1secmail account:', e);
                     return null;
                 }
             }
@@ -423,24 +342,27 @@
             async createGuerrilla() {
                 try {
                     const res = await fetch(`${GUERRILLA_BASE}?f=get_email_address`);
+                    if (!res.ok) return null;
                     const data = await res.json();
+                    if (!data.email_addr || !data.sid_token) return null;
                     return { provider: 'guerrilla', address: data.email_addr, sid_token: data.sid_token };
                 } catch (e) {
-                    console.error(e);
+                    console.error('Error creating GuerrillaMail account:', e);
                     return null;
                 }
             }
 
             async deleteMailtm(msgId) {
                 try {
-                    await fetch(`${MAILTM_BASE}/messages/${msgId}`, {
+                    const res = await fetch(`${MAILTM_BASE}/messages/${msgId}`, {
                         method: 'DELETE',
                         headers: { 'Authorization': `Bearer ${this.token}` }
                     });
+                    if (!res.ok) throw new Error('Delete failed');
                     this.showToast('🗑️ Đã xóa email!');
                     this.refreshInbox();
                 } catch (e) {
-                    console.error(e);
+                    console.error('Error deleting Mail.tm message:', e);
                     this.showToast('❌ Không thể xóa email!');
                 }
             }
@@ -450,9 +372,10 @@
                     const res = await fetch(`${MAILTM_BASE}/messages`, {
                         headers: { 'Authorization': `Bearer ${this.token}` }
                     });
+                    if (!res.ok) return [];
                     return (await res.json())['hydra:member'] || [];
                 } catch (e) {
-                    console.error(e);
+                    console.error('Error fetching Mail.tm inbox:', e);
                     return [];
                 }
             }
@@ -462,9 +385,10 @@
                     const res = await fetch(`${MAILTM_BASE}/messages/${msgId}`, {
                         headers: { 'Authorization': `Bearer ${this.token}` }
                     });
+                    if (!res.ok) return {};
                     return await res.json();
                 } catch (e) {
-                    console.error(e);
+                    console.error('Error reading Mail.tm message:', e);
                     return {};
                 }
             }
@@ -472,9 +396,10 @@
             async get1secInbox() {
                 try {
                     const res = await fetch(`${SECMAIL_BASE}?action=getMessages&login=${this.username}&domain=${this.domain}`);
+                    if (!res.ok) return [];
                     return await res.json();
                 } catch (e) {
-                    console.error(e);
+                    console.error('Error fetching 1secmail inbox:', e);
                     return [];
                 }
             }
@@ -482,9 +407,10 @@
             async read1sec(msgId) {
                 try {
                     const res = await fetch(`${SECMAIL_BASE}?action=readMessage&login=${this.username}&domain=${this.domain}&id=${msgId}`);
+                    if (!res.ok) return {};
                     return await res.json();
                 } catch (e) {
-                    console.error(e);
+                    console.error('Error reading 1secmail message:', e);
                     return {};
                 }
             }
@@ -492,9 +418,10 @@
             async getGuerrillaInbox() {
                 try {
                     const res = await fetch(`${GUERRILLA_BASE}?f=get_email_list&offset=0&sid_token=${this.sid_token}`);
+                    if (!res.ok) return [];
                     return (await res.json()).list || [];
                 } catch (e) {
-                    console.error(e);
+                    console.error('Error fetching GuerrillaMail inbox:', e);
                     return [];
                 }
             }
@@ -502,16 +429,21 @@
             async readGuerrilla(mailId) {
                 try {
                     const res = await fetch(`${GUERRILLA_BASE}?f=fetch_email&sid_token=${this.sid_token}&email_id=${mailId}`);
+                    if (!res.ok) return {};
                     return await res.json();
                 } catch (e) {
-                    console.error(e);
+                    console.error('Error reading GuerrillaMail message:', e);
                     return {};
                 }
             }
 
             copyEmail() {
-                navigator.clipboard.writeText(this.email);
-                this.showToast(`📋 Đã copy email: ${this.email}`);
+                navigator.clipboard.writeText(this.email).then(() => {
+                    this.showToast(`📋 Đã copy email: ${this.email}`);
+                }).catch((e) => {
+                    console.error('Error copying email:', e);
+                    this.showToast('❌ Không thể copy email!');
+                });
             }
 
             async refreshInbox() {
@@ -522,80 +454,95 @@
 
                 this.refreshSpinner.classList.remove('hidden');
                 this.inboxArea.innerHTML = '<div id="loading" class="text-center text-gray-400">Đang tải...</div>';
-                let mails = [];
-                if (this.provider === 'mailtm') {
-                    const inbox = await this.getMailtmInbox();
-                    mails = await Promise.all(inbox.map(async m => [
-                        m.id,
-                        m.from.address,
-                        m.subject,
-                        await this.readMailtm(m.id),
-                        m.createdAt
-                    ]));
-                } else if (this.provider === '1sec') {
-                    const inbox = await this.get1secInbox();
-                    mails = await Promise.all(inbox.map(async m => [
-                        m.id,
-                        m.from,
-                        m.subject,
-                        await this.read1sec(m.id),
-                        m.date
-                    ]));
-                } else if (this.provider === 'guerrilla') {
-                    const inbox = await this.getGuerrillaInbox();
-                    mails = await Promise.all(inbox.map(async m => [
-                        m.mail_id,
-                        m.mail_from,
-                        m.mail_subject,
-                        await this.readGuerrilla(m.mail_id),
-                        m.mail_date
-                    ]));
-                }
-
-                this.inboxArea.innerHTML = '';
-                let newMailFound = false;
-
-                for (const [mid, sender, subject, msg, date] of mails) {
-                    const bodyHTML = (msg.html || msg.text || msg.body || msg.mail_excerpt || 'No content available').replace(/\n/g, '<br>');
-                    const sanitizedHTML = sanitizeHTML(bodyHTML);
-                    const emailDiv = document.createElement('div');
-                    emailDiv.className = 'email-row bg-gray-700 rounded-lg p-4';
-                    emailDiv.innerHTML = `
-                        <div class="flex justify-between items-center cursor-pointer" onclick="this.nextElementSibling.classList.toggle('show'); this.nextElementSibling.classList.toggle('hidden');">
-                            <div>
-                                <p class="font-semibold text-white">👤 ${sender}</p>
-                                <p class="text-gray-300">📌 ${subject || 'No subject'}</p>
-                                <p class="text-gray-400 text-sm">🕒 ${new Date(date).toLocaleString()}</p>
-                            </div>
-                            <span class="text-gray-400">▼</span>
-                        </div>
-                        <div class="email-content mt-3 hidden">
-                            <iframe sandbox="allow-same-origin" srcdoc="${sanitizedHTML.replace(/"/g, '&quot;')}"></iframe>
-                            ${this.provider === 'mailtm' ? `<button class="btn bg-red-500 text-white px-4 py-2 mt-3 rounded-lg hover:bg-red-600" onclick="app.deleteMailtm('${mid}')">🗑️ Delete</button>` : ''}
-                        </div>
-                    `;
-                    this.inboxArea.appendChild(emailDiv);
-
-                    if (!this.oldMailIds.has(mid)) {
-                        newMailFound = true;
+                try {
+                    let mails = [];
+                    if (this.provider === 'mailtm') {
+                        const inbox = await this.getMailtmInbox();
+                        mails = await Promise.all(inbox.map(async m => [
+                            m.id,
+                            m.from?.address || 'Unknown',
+                            m.subject || 'No subject',
+                            await this.readMailtm(m.id),
+                            m.createdAt
+                        ]));
+                    } else if (this.provider === '1sec') {
+                        const inbox = await this.get1secInbox();
+                        mails = await Promise.all(inbox.map(async m => [
+                            m.id,
+                            m.from || 'Unknown',
+                            m.subject || 'No subject',
+                            await this.read1sec(m.id),
+                            m.date
+                        ]));
+                    } else if (this.provider === 'guerrilla') {
+                        const inbox = await this.getGuerrillaInbox();
+                        mails = await Promise.all(inbox.map(async m => [
+                            m.mail_id,
+                            m.mail_from || 'Unknown',
+                            m.mail_subject || 'No subject',
+                            await this.readGuerrilla(m.mail_id),
+                            m.mail_date
+                        ]));
                     }
-                }
 
-                const currentIds = new Set(mails.map(m => m[0]));
-                if (newMailFound) {
-                    this.showToast('🔔 Bạn có thư mới!');
-                }
-                this.oldMailIds = currentIds;
+                    this.inboxArea.innerHTML = '';
+                    let newMailFound = false;
 
-                if (!mails.length) {
-                    this.inboxArea.innerHTML = '<div class="text-center text-gray-400">📭 Chưa có thư...</div>';
+                    for (const [mid, sender, subject, msg, date] of mails) {
+                        let htmlContent = msg.htmlBody || msg.html || msg.mail_body || '';
+                        if (Array.isArray(htmlContent)) {
+                            htmlContent = htmlContent.join('');
+                        }
+                        let bodyHTML = htmlContent;
+                        if (!bodyHTML) {
+                            const textContent = msg.text || msg.body || msg.textBody || msg.mail_excerpt || 'No content available';
+                            bodyHTML = textContent.replace(/\n/g, '<br>');
+                        }
+                        const sanitizedHTML = sanitizeHTML(bodyHTML);
+                        const emailDiv = document.createElement('div');
+                        emailDiv.className = 'email-row bg-gray-700 rounded-lg p-4';
+                        emailDiv.innerHTML = `
+                            <div class="flex justify-between items-center cursor-pointer" onclick="this.nextElementSibling.classList.toggle('show');">
+                                <div>
+                                    <p class="font-semibold text-white">👤 ${sender}</p>
+                                    <p class="text-gray-300">📌 ${subject}</p>
+                                    <p class="text-gray-400 text-sm">🕒 ${new Date(date).toLocaleString()}</p>
+                                </div>
+                                <span class="text-gray-400">▼</span>
+                            </div>
+                            <div class="email-content mt-3">
+                                <iframe sandbox="allow-same-origin allow-scripts" srcdoc="${sanitizedHTML.replace(/"/g, '&quot;')}"></iframe>
+                                ${this.provider === 'mailtm' ? `<button class="btn bg-red-500 text-white px-4 py-2 mt-3 rounded-lg hover:bg-red-600" onclick="app.deleteMailtm('${mid}')">🗑️ Delete</button>` : ''}
+                            </div>
+                        `;
+                        this.inboxArea.appendChild(emailDiv);
+
+                        if (!this.oldMailIds.has(mid.toString())) {
+                            newMailFound = true;
+                        }
+                    }
+
+                    const currentIds = new Set(mails.map(m => m[0].toString()));
+                    if (newMailFound) {
+                        this.showToast('🔔 Bạn có thư mới!');
+                    }
+                    this.oldMailIds = currentIds;
+
+                    if (!mails.length) {
+                        this.inboxArea.innerHTML = '<div class="text-center text-gray-400">📭 Chưa có thư...</div>';
+                    }
+                } catch (e) {
+                    console.error('Error during inbox refresh:', e);
+                    this.showToast('❌ Lỗi khi làm mới hòm thư!');
+                    this.inboxArea.innerHTML = '<div class="text-center text-gray-400">❌ Lỗi tải thư, thử lại sau.</div>';
+                } finally {
+                    this.refreshSpinner.classList.add('hidden');
                 }
-                this.refreshSpinner.classList.add('hidden');
             }
 
             autoRefresh() {
                 this.refreshInbox();
-                setInterval(() => this.refreshInbox(), 10000);
+                setInterval(() => this.refreshInbox(), 10000);  // Giảm xuống 10s để refresh nhanh hơn, nhưng tránh rate limit
             }
 
             updateTimer() {
