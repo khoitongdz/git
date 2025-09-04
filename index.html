@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-   <link rel="icon" href="https://icons.veryicon.com/png/Application/Mavrick/Mail.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Temp Mail</title>
+    <link rel="icon" href="https://icons.veryicon.com/png/Application/Mavrick/Mail.png">
+    <title>Temp Mail Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -309,7 +309,6 @@
                 this.sid_token = null;
                 this.expireTime = 0;
                 this.oldMailIds = new Set();
-                this.currentEmail = null; // Lưu trạng thái email đang xem
                 this.emailDisplay = document.getElementById('emailDisplay');
                 this.toast = document.getElementById('toast');
                 this.inboxArea = document.getElementById('inboxArea');
@@ -332,7 +331,6 @@
             }
 
             async newEmail() {
-                this.currentEmail = null; // Xóa trạng thái email đang xem
                 this.inboxArea.innerHTML = '<div id="loading" class="text-center text-gray-400">Đang tải...</div>';
                 this.refreshSpinner.classList.remove('hidden');
                 let acc = await this.createMailtm();
@@ -518,7 +516,6 @@
 
             async refreshInbox() {
                 if (Date.now() > this.expireTime) {
-                    this.currentEmail = null;
                     this.inboxArea.innerHTML = '<div class="text-center text-gray-400">⛔ Email đã hết hạn (10 phút).</div>';
                     return;
                 }
@@ -557,16 +554,14 @@
 
                 this.inboxArea.innerHTML = '';
                 let newMailFound = false;
-                let currentEmailDiv = null;
 
                 for (const [mid, sender, subject, msg, date] of mails) {
                     const bodyHTML = (msg.html || msg.text || msg.body || msg.mail_excerpt || 'No content available').replace(/\n/g, '<br>');
                     const sanitizedHTML = sanitizeHTML(bodyHTML);
                     const emailDiv = document.createElement('div');
                     emailDiv.className = 'email-row bg-gray-700 rounded-lg p-4';
-                    const isCurrent = this.currentEmail && this.currentEmail.id === mid && this.currentEmail.isOpen;
                     emailDiv.innerHTML = `
-                        <div class="flex justify-between items-center cursor-pointer" onclick="app.toggleEmail('${mid}', this.nextElementSibling);">
+                        <div class="flex justify-between items-center cursor-pointer" onclick="this.nextElementSibling.classList.toggle('show'); this.nextElementSibling.classList.toggle('hidden');">
                             <div>
                                 <p class="font-semibold text-white">👤 ${sender}</p>
                                 <p class="text-gray-300">📌 ${subject || 'No subject'}</p>
@@ -574,16 +569,12 @@
                             </div>
                             <span class="text-gray-400">▼</span>
                         </div>
-                        <div class="email-content mt-3 ${isCurrent ? 'show' : 'hidden'}">
+                        <div class="email-content mt-3 hidden">
                             <iframe sandbox="allow-same-origin" srcdoc="${sanitizedHTML.replace(/"/g, '&quot;')}"></iframe>
                             ${this.provider === 'mailtm' ? `<button class="btn bg-red-500 text-white px-4 py-2 mt-3 rounded-lg hover:bg-red-600" onclick="app.deleteMailtm('${mid}')">🗑️ Delete</button>` : ''}
                         </div>
                     `;
                     this.inboxArea.appendChild(emailDiv);
-
-                    if (isCurrent) {
-                        currentEmailDiv = emailDiv.querySelector('.email-content');
-                    }
 
                     if (!this.oldMailIds.has(mid)) {
                         newMailFound = true;
@@ -597,28 +588,13 @@
                 this.oldMailIds = currentIds;
 
                 if (!mails.length) {
-                    this.currentEmail = null;
                     this.inboxArea.innerHTML = '<div class="text-center text-gray-400">📭 Chưa có thư...</div>';
                 }
-
                 this.refreshSpinner.classList.add('hidden');
             }
 
-            toggleEmail(mid, contentDiv) {
-                if (this.currentEmail && this.currentEmail.id !== mid && this.currentEmail.isOpen) {
-                    const previousContent = document.querySelector(`.email-content.show:not([data-mid="${mid}"])`);
-                    if (previousContent) {
-                        previousContent.classList.remove('show');
-                        previousContent.classList.add('hidden');
-                    }
-                }
-                this.currentEmail = { id: mid, isOpen: !contentDiv.classList.contains('hidden') };
-                contentDiv.classList.toggle('show');
-                contentDiv.classList.toggle('hidden');
-            }
-
-            async autoRefresh() {
-                await this.refreshInbox();
+            autoRefresh() {
+                this.refreshInbox();
                 setInterval(() => this.refreshInbox(), 10000);
             }
 
@@ -630,7 +606,6 @@
                     this.timerLabel.textContent = `⏳ Còn lại: ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
                     setTimeout(() => this.updateTimer(), 1000);
                 } else {
-                    this.currentEmail = null;
                     this.timerLabel.textContent = '⛔ Email đã hết hạn!';
                     this.emailDisplay.value = 'HẾT HẠN';
                     this.inboxArea.innerHTML = '<div class="text-center text-gray-400">⛔ Email hết hạn, bấm "✨ New Email" để tạo lại.</div>';
