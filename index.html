@@ -9,63 +9,158 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
             color: #e2e8f0;
+            overflow-x: hidden;
+            user-select: none; /* Ngăn chọn văn bản */
         }
         .btn {
-            transition: transform 0.2s, background-color 0.3s;
+            transition: transform 0.2s, background-color 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
         .btn:hover {
             transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        .btn:active {
+            transform: scale(0.95);
+        }
+        .copy-btn {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            width: 80px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .copy-btn:hover {
+            animation: pulse 1.5s infinite;
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.6);
+        }
+        .copy-btn:active::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            animation: ripple 0.4s ease-out;
         }
         .toast {
             transition: opacity 0.3s, transform 0.3s;
+            background: linear-gradient(135deg, #4b5563, #1f2937);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
         }
         .toast-hidden {
             opacity: 0;
             transform: translateY(-20px);
         }
         .email-row {
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, transform 0.3s, opacity 0.5s;
+            animation: fadeIn 0.5s ease-in;
         }
         .email-row:hover {
             background-color: #374151;
+            transform: translateX(5px);
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        #devtools-blocker {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        #devtools-blocker.show {
+            display: flex;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        @keyframes ripple {
+            to { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+        header, .bg-gray-800 {
+            background: linear-gradient(135deg, #1e293b 0%, #111827 100%);
+            border-radius: 12px;
+        }
+        input[readonly] {
+            cursor: default;
+            background: #1f2937;
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center">
+    <!-- DevTools Blocker -->
+    <div id="devtools-blocker">
+        <div class="text-center text-white text-2xl font-bold">
+            🚫 Vui lòng đóng DevTools để tiếp tục sử dụng trang web!
+        </div>
+    </div>
+
     <!-- Header -->
     <header class="w-full bg-gray-900 bg-opacity-90 backdrop-blur-sm py-4 shadow-lg">
         <div class="max-w-5xl mx-auto flex items-center justify-between px-4">
-            <h1 class="text-2xl font-bold text-white">📧 Temp Mail Pro</h1>
-            <div id="timer" class="text-yellow-400 font-semibold">⏳ Còn lại: 10:00</div>
+            <h1 class="text-3xl font-bold text-white tracking-tight">📧 Temp Mail Pro</h1>
+            <div id="timer" class="text-yellow-300 font-semibold text-lg">⏳ Còn lại: 10:00</div>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-5xl w-full mx-auto mt-6 px-4 flex-grow">
+    <main class="max-w-5xl w-full mx-auto mt-8 px-4 flex-grow">
         <!-- Email Card -->
-        <div class="bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 mb-8">
             <div class="flex items-center justify-between">
                 <input id="emailDisplay" type="text" value="Đang tạo email..." readonly
-                       class="w-full bg-gray-700 text-white p-3 rounded-l-lg text-sm font-mono focus:outline-none" />
-                <button id="copyBtn" class="btn bg-green-500 text-white px-4 py-2 rounded-r-lg hover:bg-green-600">
+                       class="w-full bg-gray-700 text-white p-4 rounded-l-lg text-sm font-mono focus:outline-none border border-gray-600" />
+                <button id="copyBtn" class="copy-btn btn" title="Copy Email">
                     📋 Copy
                 </button>
             </div>
-            <div class="flex space-x-4 mt-4">
-                <button id="refreshBtn" class="btn bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                    🔄 Refresh
+            <div class="flex space-x-4 mt-6">
+                <button id="refreshBtn" class="btn bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center">
+                    <span id="refreshSpinner" class="loading-spinner hidden mr-2"></span>🔄 Refresh
                 </button>
-                <button id="newEmailBtn" class="btn bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700">
+                <button id="newEmailBtn" class="btn bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700">
                     ✨ New Email
                 </button>
             </div>
         </div>
 
         <!-- Inbox -->
-        <div class="bg-gray-800 rounded-lg shadow-lg p-6">
-            <h2 class="text-lg font-semibold mb-4">📬 Inbox</h2>
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6">
+            <h2 class="text-xl font-semibold mb-4 text-white">📬 Inbox</h2>
             <div id="inboxArea" class="space-y-4 max-h-96 overflow-y-auto">
                 <div id="loading" class="text-center text-gray-400">Đang tải...</div>
             </div>
@@ -73,7 +168,7 @@
     </main>
 
     <!-- Toast Notification -->
-    <div id="toast" class="fixed top-4 bg-gray-900 text-white px-4 py-2 rounded-lg shadow-lg toast-hidden">
+    <div id="toast" class="fixed top-4 bg-gray-900 text-white px-5 py-3 rounded-lg shadow-lg toast-hidden">
         Notification
     </div>
 
@@ -92,6 +187,69 @@
             return Array(length).fill().map(() => chars[Math.floor(Math.random() * chars.length)]).join('');
         }
 
+        // Chặn phím F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U, Ctrl+S
+        document.addEventListener('keydown', (e) => {
+            if (
+                e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+                (e.ctrlKey && (e.key === 'u' || e.key === 'U' || e.key === 's' || e.key === 'S'))
+            ) {
+                e.preventDefault();
+                showToast('🚫 Phím tắt này bị chặn!');
+            }
+        });
+
+        // Chặn context menu (click chuột phải)
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            showToast('🚫 Click chuột phải bị chặn!');
+        });
+
+        // Phát hiện DevTools và khóa thao tác
+        function detectDevTools() {
+            let devtoolsOpen = false;
+            const threshold = 160; // Độ chênh lệch kích thước cửa sổ khi DevTools mở
+            const check = () => {
+                if (
+                    window.outerWidth - window.innerWidth > threshold ||
+                    window.outerHeight - window.innerHeight > threshold ||
+                    (window.console && console.log.toString().includes('native code') === false)
+                ) {
+                    devtoolsOpen = true;
+                    document.getElementById('devtools-blocker').classList.add('show');
+                    // Vô hiệu hóa mọi tương tác
+                    document.body.style.pointerEvents = 'none';
+                    document.body.style.userSelect = 'none';
+                    // Chặn các sự kiện chuột và bàn phím
+                    document.addEventListener('click', blockInteraction);
+                    document.addEventListener('keydown', blockInteraction);
+                    document.addEventListener('keypress', blockInteraction);
+                    showToast('🚫 DevTools đang mở! Vui lòng đóng để tiếp tục.');
+                } else if (devtoolsOpen) {
+                    devtoolsOpen = false;
+                    document.getElementById('devtools-blocker').classList.remove('show');
+                    document.body.style.pointerEvents = 'auto';
+                    document.body.style.userSelect = 'none';
+                    document.removeEventListener('click', blockInteraction);
+                    document.removeEventListener('keydown', blockInteraction);
+                    document.removeEventListener('keypress', blockInteraction);
+                }
+            };
+            setInterval(check, 1000);
+        }
+
+        function blockInteraction(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.remove('toast-hidden');
+            setTimeout(() => toast.classList.add('toast-hidden'), 3000);
+        }
+
         class TempMailApp {
             constructor() {
                 this.email = '';
@@ -106,10 +264,16 @@
                 this.toast = document.getElementById('toast');
                 this.inboxArea = document.getElementById('inboxArea');
                 this.timerLabel = document.getElementById('timer');
+                this.refreshSpinner = document.getElementById('refreshSpinner');
                 document.getElementById('copyBtn').addEventListener('click', () => this.copyEmail());
-                document.getElementById('refreshBtn').addEventListener('click', () => this.refreshInbox());
-                document.getElementById('newEmailBtn').addEventListener('click', () => this.newEmail());
+                document.getElementById('refreshBtn').addEventListener('click', () => {
+                    if (confirm('Xác nhận làm mới hòm thư?')) this.refreshInbox();
+                });
+                document.getElementById('newEmailBtn').addEventListener('click', () => {
+                    if (confirm('Xác nhận tạo email mới? Email hiện tại sẽ bị xóa.')) this.newEmail();
+                });
                 this.newEmail();
+                detectDevTools(); // Bắt đầu phát hiện DevTools
             }
 
             showToast(message) {
@@ -120,6 +284,7 @@
 
             async newEmail() {
                 this.inboxArea.innerHTML = '<div id="loading" class="text-center text-gray-400">Đang tải...</div>';
+                this.refreshSpinner.classList.remove('hidden');
                 let acc = await this.createMailtm();
                 if (acc) {
                     this.provider = 'mailtm';
@@ -149,6 +314,7 @@
                         } else {
                             this.showToast('❌ Không tạo được email từ bất kỳ API nào!');
                             this.inboxArea.innerHTML = '<div class="text-center text-gray-400">Không thể tạo email.</div>';
+                            this.refreshSpinner.classList.add('hidden');
                             return;
                         }
                     }
@@ -161,6 +327,7 @@
                 this.updateTimer();
                 this.autoRefresh();
                 this.showToast(`✅ Email mới: ${this.email}`);
+                this.refreshSpinner.classList.add('hidden');
             }
 
             async createMailtm() {
@@ -213,6 +380,20 @@
                 } catch (e) {
                     console.error(e);
                     return null;
+                }
+            }
+
+            async deleteMailtm(msgId) {
+                try {
+                    await fetch(`${MAILTM_BASE}/messages/${msgId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${this.token}` }
+                    });
+                    this.showToast('🗑️ Đã xóa email!');
+                    this.refreshInbox();
+                } catch (e) {
+                    console.error(e);
+                    this.showToast('❌ Không thể xóa email!');
                 }
             }
 
@@ -291,6 +472,7 @@
                     return;
                 }
 
+                this.refreshSpinner.classList.remove('hidden');
                 this.inboxArea.innerHTML = '<div id="loading" class="text-center text-gray-400">Đang tải...</div>';
                 let mails = [];
                 if (this.provider === 'mailtm') {
@@ -299,7 +481,8 @@
                         m.id,
                         m.from.address,
                         m.subject,
-                        await this.readMailtm(m.id)
+                        await this.readMailtm(m.id),
+                        m.createdAt
                     ]));
                 } else if (this.provider === '1sec') {
                     const inbox = await this.get1secInbox();
@@ -307,7 +490,8 @@
                         m.id,
                         m.from,
                         m.subject,
-                        await this.read1sec(m.id)
+                        await this.read1sec(m.id),
+                        m.date
                     ]));
                 } else if (this.provider === 'guerrilla') {
                     const inbox = await this.getGuerrillaInbox();
@@ -315,27 +499,30 @@
                         m.mail_id,
                         m.mail_from,
                         m.mail_subject,
-                        await this.readGuerrilla(m.mail_id)
+                        await this.readGuerrilla(m.mail_id),
+                        m.mail_date
                     ]));
                 }
 
                 this.inboxArea.innerHTML = '';
                 let newMailFound = false;
 
-                for (const [mid, sender, subject, msg] of mails) {
+                for (const [mid, sender, subject, msg, date] of mails) {
                     const bodyText = msg.text || msg.body || msg.mail_excerpt || 'No content available';
                     const emailDiv = document.createElement('div');
                     emailDiv.className = 'email-row bg-gray-700 rounded-lg p-4';
                     emailDiv.innerHTML = `
                         <div class="flex justify-between items-center cursor-pointer" onclick="this.nextElementSibling.classList.toggle('hidden')">
                             <div>
-                                <p class="font-semibold">👤 ${sender}</p>
+                                <p class="font-semibold text-white">👤 ${sender}</p>
                                 <p class="text-gray-300">📌 ${subject || 'No subject'}</p>
+                                <p class="text-gray-400 text-sm">🕒 ${new Date(date).toLocaleString()}</p>
                             </div>
                             <span class="text-gray-400">▼</span>
                         </div>
-                        <div class="mt-2 text-gray-200 hidden">
+                        <div class="mt-3 text-gray-200 hidden">
                             <p>📝 ${bodyText.replace(/\n/g, '<br>')}</p>
+                            ${this.provider === 'mailtm' ? `<button class="btn bg-red-500 text-white px-4 py-2 mt-3 rounded-lg hover:bg-red-600" onclick="app.deleteMailtm('${mid}')">🗑️ Delete</button>` : ''}
                         </div>
                     `;
                     this.inboxArea.appendChild(emailDiv);
@@ -354,11 +541,12 @@
                 if (!mails.length) {
                     this.inboxArea.innerHTML = '<div class="text-center text-gray-400">📭 Chưa có thư...</div>';
                 }
+                this.refreshSpinner.classList.add('hidden');
             }
 
             autoRefresh() {
                 this.refreshInbox();
-                setInterval(() => this.refreshInbox(), 5000);
+                setInterval(() => this.refreshInbox(), 10000);
             }
 
             updateTimer() {
