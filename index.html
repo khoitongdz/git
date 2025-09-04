@@ -1,119 +1,382 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Temp Mail Pro</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background: radial-gradient(circle at top, #1e293b, #0f172a);
-      color: #e2e8f0;
-    }
-    .glass {
-      background: rgba(17, 25, 40, 0.85);
-      backdrop-filter: blur(14px);
-      will-change: transform, opacity;
-    }
-    .btn {
-      transition: transform 0.2s ease, background-color 0.3s ease;
-    }
-    .btn:hover {
-      transform: translateY(-2px) scale(1.05);
-    }
-    .toast {
-      transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-    .toast-hidden {
-      opacity: 0;
-      transform: translateY(-20px);
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temp Mail Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #e2e8f0;
+        }
+        .btn {
+            transition: transform 0.2s, background-color 0.3s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        .toast {
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .toast-hidden {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        .email-row {
+            transition: background-color 0.3s;
+        }
+        .email-row:hover {
+            background-color: #374151;
+        }
+    </style>
 </head>
-<body class="min-h-screen flex flex-col items-center p-4">
+<body class="min-h-screen flex flex-col items-center">
+    <!-- Header -->
+    <header class="w-full bg-gray-900 bg-opacity-90 backdrop-blur-sm py-4 shadow-lg">
+        <div class="max-w-5xl mx-auto flex items-center justify-between px-4">
+            <h1 class="text-2xl font-bold text-white">📧 Temp Mail Pro</h1>
+            <div id="timer" class="text-yellow-400 font-semibold">⏳ Còn lại: 10:00</div>
+        </div>
+    </header>
 
-  <!-- Header -->
-  <header class="w-full max-w-5xl glass rounded-2xl p-6 flex justify-between items-center shadow-lg">
-    <h1 class="text-3xl font-bold text-white flex items-center gap-2">
-      <span>📧</span> Temp Mail Pro
-    </h1>
-    <div id="timer" class="text-yellow-400 text-lg font-semibold">⏳ 10:00</div>
-  </header>
+    <!-- Main Content -->
+    <main class="max-w-5xl w-full mx-auto mt-6 px-4 flex-grow">
+        <!-- Email Card -->
+        <div class="bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <input id="emailDisplay" type="text" value="Đang tạo email..." readonly
+                       class="w-full bg-gray-700 text-white p-3 rounded-l-lg text-sm font-mono focus:outline-none" />
+                <button id="copyBtn" class="btn bg-green-500 text-white px-4 py-2 rounded-r-lg hover:bg-green-600">
+                    📋 Copy
+                </button>
+            </div>
+            <div class="flex space-x-4 mt-4">
+                <button id="refreshBtn" class="btn bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                    🔄 Refresh
+                </button>
+                <button id="newEmailBtn" class="btn bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700">
+                    ✨ New Email
+                </button>
+            </div>
+        </div>
 
-  <!-- Main Content -->
-  <main class="w-full max-w-5xl mt-8 flex-grow space-y-8">
-    <!-- Email Card -->
-    <div class="glass rounded-2xl shadow-xl p-6">
-      <div class="flex flex-col md:flex-row items-stretch gap-4">
-        <input id="emailDisplay" type="text" value="Đang tạo email..." readonly
-          class="flex-grow bg-gray-800 text-white p-4 rounded-xl text-sm font-mono focus:outline-none shadow-inner" />
-        <button id="copyBtn" class="btn bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg">
-          📋 Copy
-        </button>
-      </div>
-      <div class="flex gap-4 mt-6 flex-wrap">
-        <button id="refreshBtn" class="btn flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg">
-          🔄 Refresh
-        </button>
-        <button id="newEmailBtn" class="btn flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg">
-          ✨ New Email
-        </button>
-      </div>
+        <!-- Inbox -->
+        <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+            <h2 class="text-lg font-semibold mb-4">📬 Inbox</h2>
+            <div id="inboxArea" class="space-y-4 max-h-96 overflow-y-auto">
+                <div id="loading" class="text-center text-gray-400">Đang tải...</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 bg-gray-900 text-white px-4 py-2 rounded-lg shadow-lg toast-hidden">
+        Notification
     </div>
 
-    <!-- Inbox -->
-    <div class="glass rounded-2xl shadow-xl p-6">
-      <h2 class="text-xl font-bold mb-4">📬 Inbox</h2>
-      <div id="inboxArea" class="space-y-4 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700">
-        <div id="loading" class="text-center text-gray-400">Đang tải...</div>
-      </div>
-    </div>
-  </main>
+    <script>
+        const MAILTM_BASE = "https://api.mail.tm";
+        const SECMAIL_BASE = "https://www.1secmail.com/api/v1/";
+        const GUERRILLA_BASE = "https://api.guerrillamail.com/ajax.php";
 
-  <!-- Toast -->
-  <div id="toast" class="fixed top-6 right-6 glass px-6 py-3 rounded-xl shadow-xl toast-hidden">
-    Notification
-  </div>
-
-  <script>
-    // 🔒 Anti Debugger / Anti Console
-    (function() {
-      function detectDevTools() {
-        const threshold = 160;
-        const widthThreshold = window.outerWidth - window.innerWidth > threshold;
-        const heightThreshold = window.outerHeight - window.innerHeight > threshold;
-        if (widthThreshold || heightThreshold) {
-          alert("⚠️ Phát hiện console đang mở! Vui lòng đóng lại.");
-          setInterval(function() { debugger; }, 50); // khóa thao tác
+        function genPassword(length = 12) {
+            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            return Array(length).fill().map(() => chars[Math.floor(Math.random() * chars.length)]).join('');
         }
-      }
-      setInterval(detectDevTools, 1000);
 
-      // Cảnh báo khi mở console bằng F12 hoặc Ctrl+Shift+I
-      document.addEventListener("keydown", function(e) {
-        if (e.key === "F12" || (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "i")) {
-          e.preventDefault();
-          alert("⚠️ Không được mở DevTools!");
-          setInterval(function() { debugger; }, 50);
+        function genUsername(length = 8) {
+            const chars = 'abcdefghijklmnopqrstuvwxyz';
+            return Array(length).fill().map(() => chars[Math.floor(Math.random() * chars.length)]).join('');
         }
-      });
-    })();
 
-    // ⚡ Tối ưu hiệu ứng bằng requestAnimationFrame khi cần
-    function smoothUpdate(fn) {
-      let ticking = false;
-      return function(...args) {
-        if (!ticking) {
-          requestAnimationFrame(() => {
-            fn.apply(this, args);
-            ticking = false;
-          });
-          ticking = true;
+        class TempMailApp {
+            constructor() {
+                this.email = '';
+                this.provider = '';
+                this.token = null;
+                this.username = null;
+                this.domain = null;
+                this.sid_token = null;
+                this.expireTime = 0;
+                this.oldMailIds = new Set();
+                this.emailDisplay = document.getElementById('emailDisplay');
+                this.toast = document.getElementById('toast');
+                this.inboxArea = document.getElementById('inboxArea');
+                this.timerLabel = document.getElementById('timer');
+                document.getElementById('copyBtn').addEventListener('click', () => this.copyEmail());
+                document.getElementById('refreshBtn').addEventListener('click', () => this.refreshInbox());
+                document.getElementById('newEmailBtn').addEventListener('click', () => this.newEmail());
+                this.newEmail();
+            }
+
+            showToast(message) {
+                this.toast.textContent = message;
+                this.toast.classList.remove('toast-hidden');
+                setTimeout(() => this.toast.classList.add('toast-hidden'), 3000);
+            }
+
+            async newEmail() {
+                this.inboxArea.innerHTML = '<div id="loading" class="text-center text-gray-400">Đang tải...</div>';
+                let acc = await this.createMailtm();
+                if (acc) {
+                    this.provider = 'mailtm';
+                    this.email = acc.address;
+                    this.token = acc.token;
+                    this.username = null;
+                    this.domain = null;
+                    this.sid_token = null;
+                } else {
+                    acc = await this.create1sec();
+                    if (acc) {
+                        this.provider = '1sec';
+                        this.email = acc.address;
+                        this.username = acc.username;
+                        this.domain = acc.domain;
+                        this.token = null;
+                        this.sid_token = null;
+                    } else {
+                        acc = await this.createGuerrilla();
+                        if (acc) {
+                            this.provider = 'guerrilla';
+                            this.email = acc.address;
+                            this.sid_token = acc.sid_token;
+                            this.username = null;
+                            this.domain = null;
+                            this.token = null;
+                        } else {
+                            this.showToast('❌ Không tạo được email từ bất kỳ API nào!');
+                            this.inboxArea.innerHTML = '<div class="text-center text-gray-400">Không thể tạo email.</div>';
+                            return;
+                        }
+                    }
+                }
+
+                this.expireTime = Date.now() + 600000;
+                this.emailDisplay.value = this.email;
+                this.inboxArea.innerHTML = '<div class="text-center text-gray-400">📭 Chưa có thư...</div>';
+                this.oldMailIds.clear();
+                this.updateTimer();
+                this.autoRefresh();
+                this.showToast(`✅ Email mới: ${this.email}`);
+            }
+
+            async createMailtm() {
+                try {
+                    const domainsRes = await fetch(`${MAILTM_BASE}/domains`);
+                    const domains = (await domainsRes.json())['hydra:member'];
+                    const domain = domains[0].domain;
+                    const username = genUsername();
+                    const address = `${username}@${domain}`;
+                    const password = genPassword();
+
+                    const data = { address, password };
+                    await fetch(`${MAILTM_BASE}/accounts`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+
+                    const tokenRes = await fetch(`${MAILTM_BASE}/token`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    const tokenData = await tokenRes.json();
+                    if (!tokenData.token) return null;
+                    return { provider: 'mailtm', address, password, token: tokenData.token };
+                } catch (e) {
+                    console.error(e);
+                    return null;
+                }
+            }
+
+            async create1sec() {
+                try {
+                    const res = await fetch(`${SECMAIL_BASE}?action=genRandomMailbox&count=1`);
+                    const [address] = await res.json();
+                    const [username, domain] = address.split('@');
+                    return { provider: '1sec', address, username, domain };
+                } catch (e) {
+                    console.error(e);
+                    return null;
+                }
+            }
+
+            async createGuerrilla() {
+                try {
+                    const res = await fetch(`${GUERRILLA_BASE}?f=get_email_address`);
+                    const data = await res.json();
+                    return { provider: 'guerrilla', address: data.email_addr, sid_token: data.sid_token };
+                } catch (e) {
+                    console.error(e);
+                    return null;
+                }
+            }
+
+            async getMailtmInbox() {
+                try {
+                    const res = await fetch(`${MAILTM_BASE}/messages`, {
+                        headers: { 'Authorization': `Bearer ${this.token}` }
+                    });
+                    return (await res.json())['hydra:member'] || [];
+                } catch (e) {
+                    console.error(e);
+                    return [];
+                }
+            }
+
+            async readMailtm(msgId) {
+                try {
+                    const res = await fetch(`${MAILTM_BASE}/messages/${msgId}`, {
+                        headers: { 'Authorization': `Bearer ${this.token}` }
+                    });
+                    return await res.json();
+                } catch (e) {
+                    console.error(e);
+                    return {};
+                }
+            }
+
+            async get1secInbox() {
+                try {
+                    const res = await fetch(`${SECMAIL_BASE}?action=getMessages&login=${this.username}&domain=${this.domain}`);
+                    return await res.json();
+                } catch (e) {
+                    console.error(e);
+                    return [];
+                }
+            }
+
+            async read1sec(msgId) {
+                try {
+                    const res = await fetch(`${SECMAIL_BASE}?action=readMessage&login=${this.username}&domain=${this.domain}&id=${msgId}`);
+                    return await res.json();
+                } catch (e) {
+                    console.error(e);
+                    return {};
+                }
+            }
+
+            async getGuerrillaInbox() {
+                try {
+                    const res = await fetch(`${GUERRILLA_BASE}?f=get_email_list&offset=0&sid_token=${this.sid_token}`);
+                    return (await res.json()).list || [];
+                } catch (e) {
+                    console.error(e);
+                    return [];
+                }
+            }
+
+            async readGuerrilla(mailId) {
+                try {
+                    const res = await fetch(`${GUERRILLA_BASE}?f=fetch_email&sid_token=${this.sid_token}&email_id=${mailId}`);
+                    return await res.json();
+                } catch (e) {
+                    console.error(e);
+                    return {};
+                }
+            }
+
+            copyEmail() {
+                navigator.clipboard.writeText(this.email);
+                this.showToast(`📋 Đã copy email: ${this.email}`);
+            }
+
+            async refreshInbox() {
+                if (Date.now() > this.expireTime) {
+                    this.inboxArea.innerHTML = '<div class="text-center text-gray-400">⛔ Email đã hết hạn (10 phút).</div>';
+                    return;
+                }
+
+                this.inboxArea.innerHTML = '<div id="loading" class="text-center text-gray-400">Đang tải...</div>';
+                let mails = [];
+                if (this.provider === 'mailtm') {
+                    const inbox = await this.getMailtmInbox();
+                    mails = await Promise.all(inbox.map(async m => [
+                        m.id,
+                        m.from.address,
+                        m.subject,
+                        await this.readMailtm(m.id)
+                    ]));
+                } else if (this.provider === '1sec') {
+                    const inbox = await this.get1secInbox();
+                    mails = await Promise.all(inbox.map(async m => [
+                        m.id,
+                        m.from,
+                        m.subject,
+                        await this.read1sec(m.id)
+                    ]));
+                } else if (this.provider === 'guerrilla') {
+                    const inbox = await this.getGuerrillaInbox();
+                    mails = await Promise.all(inbox.map(async m => [
+                        m.mail_id,
+                        m.mail_from,
+                        m.mail_subject,
+                        await this.readGuerrilla(m.mail_id)
+                    ]));
+                }
+
+                this.inboxArea.innerHTML = '';
+                let newMailFound = false;
+
+                for (const [mid, sender, subject, msg] of mails) {
+                    const bodyText = msg.text || msg.body || msg.mail_excerpt || 'No content available';
+                    const emailDiv = document.createElement('div');
+                    emailDiv.className = 'email-row bg-gray-700 rounded-lg p-4';
+                    emailDiv.innerHTML = `
+                        <div class="flex justify-between items-center cursor-pointer" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                            <div>
+                                <p class="font-semibold">👤 ${sender}</p>
+                                <p class="text-gray-300">📌 ${subject || 'No subject'}</p>
+                            </div>
+                            <span class="text-gray-400">▼</span>
+                        </div>
+                        <div class="mt-2 text-gray-200 hidden">
+                            <p>📝 ${bodyText.replace(/\n/g, '<br>')}</p>
+                        </div>
+                    `;
+                    this.inboxArea.appendChild(emailDiv);
+
+                    if (!this.oldMailIds.has(mid)) {
+                        newMailFound = true;
+                    }
+                }
+
+                const currentIds = new Set(mails.map(m => m[0]));
+                if (newMailFound) {
+                    this.showToast('🔔 Bạn có thư mới!');
+                }
+                this.oldMailIds = currentIds;
+
+                if (!mails.length) {
+                    this.inboxArea.innerHTML = '<div class="text-center text-gray-400">📭 Chưa có thư...</div>';
+                }
+            }
+
+            autoRefresh() {
+                this.refreshInbox();
+                setInterval(() => this.refreshInbox(), 5000);
+            }
+
+            updateTimer() {
+                const remaining = Math.max(0, Math.floor((this.expireTime - Date.now()) / 1000));
+                if (remaining > 0) {
+                    const mins = Math.floor(remaining / 60);
+                    const secs = remaining % 60;
+                    this.timerLabel.textContent = `⏳ Còn lại: ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    setTimeout(() => this.updateTimer(), 1000);
+                } else {
+                    this.timerLabel.textContent = '⛔ Email đã hết hạn!';
+                    this.emailDisplay.value = 'HẾT HẠN';
+                    this.inboxArea.innerHTML = '<div class="text-center text-gray-400">⛔ Email hết hạn, bấm "✨ New Email" để tạo lại.</div>';
+                }
+            }
         }
-      };
-    }
-  </script>
+
+        const app = new TempMailApp();
+    </script>
 </body>
 </html>
